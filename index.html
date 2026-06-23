@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shift Availability Calendar</title>
+<title>Shift Calendar — Q4 2026</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,126 +204,90 @@
 <script>
 // ─── Base shift data ──────────────────────────────────────────────────────────
 const calBase = {
-  6: {
-    15: { tags:[{status:'work',label:'Work MVH Ed'}] },
-    16: { tags:[{status:'open',label:'Open'}] },
-    17: { tags:[{status:'work',label:'Work MVH'}] },
-    18: { tags:[{status:'target-srmc',label:'🎯 SRMC #1'}] },
+  9: {
+    3:  { tags:[{status:'blocked',label:'✈️ To Atlanta'}] },
+    4:  { tags:[{status:'blocked',label:'✈️ To Joburg → SA'}] },
+    12: { tags:[{status:'work',label:'Work.'}] },
+    13: { tags:[{status:'blocked',label:'Cape Town 🌍'}] },
+    14: { tags:[{status:'blocked',label:'Cape Town 🌍'}] },
+    15: { tags:[{status:'blocked',label:'Cape Town 🌍'}] },
+    16: { tags:[{status:'blocked',label:'Cape Town 🌍'}] },
+    17: { tags:[{status:'blocked',label:'✈️ Home'}] },
     19: { tags:[{status:'work',label:'Work MVH'}] },
-    20: { tags:[{status:'open',label:'Open'}] },
-    21: { tags:[{status:'pilates',label:'Pilates'}] },
-    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #2'}] },
-    23: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
-    24: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
-    25: { tags:[{status:'work',label:'Work MVH'}], ryan:['Trade Show'] },
-    26: { tags:[{status:'work',label:'Work MVH'}], ryan:['Golf Trip'] },
-    27: { tags:[{status:'open',label:'Open'}], ryan:['Golf Trip'] },
-    28: { tags:[{status:'blocked',label:'Book Club'}], ryan:['Golf Trip'] },
-    29: { tags:[{status:'target-srmc',label:'🎯 SRMC #3'}] },
-    30: { tags:[{status:'work',label:'Work MVH'}] },
+    20: { tags:[{status:'work',label:'Work MVH'}] },
+    29: { tags:[{status:'open',label:'Open'}] },
   },
-  7: {
-    1:  { tags:[{status:'pilates',label:'Pilates'}] },
-    2:  { tags:[{status:'work',label:'Work MVH'}] },
-    3:  { tags:[{status:'work',label:'Work MVH'}] },
-    4:  { tags:[{status:'work',label:'Work SRMC 🎯 1.5x'}] },
-    5:  { tags:[{status:'work',label:'Work SRMC'}] },
-    6:  { tags:[{status:'work',label:'Work MVH'}] },
-    7:  { tags:[{status:'target-srmc',label:'🎯 SRMC #4'}] },
-    8:  { tags:[{status:'pilates',label:'Pilates'}] },
-    9:  { tags:[{status:'open',label:'Open'}] },
+  10: {
+    1:  { tags:[{status:'personal',label:'Anniversary ❤️'}] },
+    3:  { tags:[{status:'work',label:'Work.'}] },
     10: { tags:[{status:'work',label:'Work MVH'}] },
     11: { tags:[{status:'work',label:'Work MVH'}] },
-    12: { tags:[{status:'work',label:'Work MVH'}] },
-    13: { tags:[{status:'target-srmc',label:'🎯 SRMC #5'}] },
-    14: { tags:[{status:'pilates',label:'Pilates'}] },
-    15: { tags:[{status:'work',label:'Work MVH'}] },
-    16: { tags:[{status:'work',label:'Work MVH'}] },
-    17: { tags:[{status:'target-srmc',label:'🎯 SRMC #6'}] },
-    18: { tags:[{status:'blocked',label:'Book Club'}] },
-    19: { tags:[{status:'pilates',label:'Pilates'}] },
-    20: { tags:[{status:'work',label:'Work MVH'}] },
-    21: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
-    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #7'}], ryan:['New York'] },
-    23: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
-    24: { tags:[{status:'pilates',label:'Pilates'}], ryan:['New York'] },
-    25: { tags:[{status:'open',label:'Open'}] },
-    26: { tags:[{status:'open',label:'Open'}] },
-    27: { tags:[{status:'assumed',label:'Base shift'}] },
-    28: { tags:[{status:'assumed',label:'Base shift'}] },
-    29: { tags:[{status:'work',label:'Cover Brandi'}] },
-    30: { tags:[{status:'pilates',label:'Pilates'}] },
-    31: { tags:[{status:'assumed',label:'Base shift'}] },
+    16: { tags:[{status:'blocked',label:'Put-in-Bay 🏝️'}] },
+    17: { tags:[{status:'blocked',label:'Put-in-Bay 🏝️'}] },
+    18: { tags:[{status:'blocked',label:'Put-in-Bay 🏝️'}] },
+    20: { tags:[{status:'work',label:'MVH Ed (ARDS)'}] },
+    22: { tags:[{status:'open',label:'Open'}] },
+    24: { tags:[{status:'work',label:'Work.'}] },
+    31: { tags:[{status:'work',label:'Work MVH'}] },
   },
-  8: {
-    1:  { tags:[{status:'target-srmc',label:'🎯 SRMC #8'}] },
-    2:  { tags:[{status:'open',label:'Open'}] },
-    3:  { tags:[{status:'assumed',label:'Base shift'}] },
-    4:  { tags:[{status:'target-srmc',label:'🎯 SRMC #9'}] },
-    5:  { tags:[{status:'pilates',label:'Pilates'}] },
-    6:  { tags:[{status:'open',label:'Open'}] },
-    7:  { tags:[{status:'open',label:'Open'}] },
-    8:  { tags:[{status:'work',label:'Work MVH'}] },
-    9:  { tags:[{status:'work',label:'Work MVH'}] },
-    10: { tags:[{status:'assumed',label:'Base shift'}] },
-    11: { tags:[{status:'pilates',label:'Pilates'}] },
-    12: { tags:[{status:'assumed',label:'Base shift'}] },
-    13: { tags:[{status:'target-mvh',label:'🎯 MVH #1'}] },
-    14: { tags:[{status:'assumed',label:'Base shift'}] },
-    15: { tags:[{status:'blocked',label:'Book Club'}] },
-    16: { tags:[{status:'open',label:'Open'}] },
-    17: { tags:[{status:'pilates',label:'Pilates'}] },
-    18: { tags:[{status:'assumed',label:'Base shift'}] },
-    19: { tags:[{status:'assumed',label:'Base shift'}] },
-    20: { tags:[{status:'target-mvh',label:'🎯 MVH #2'}] },
-    21: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
-    22: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
-    23: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
-    24: { tags:[{status:'pilates',label:'Pilates'}] },
-    25: { tags:[{status:'assumed',label:'Base shift'}] },
-    26: { tags:[{status:'open',label:'MVH Ed Eve'}] },
-    27: { tags:[{status:'target-mvh',label:'🎯 MVH #3'}] },
-    28: { tags:[{status:'open',label:'Open'}] },
-    29: { tags:[{status:'work',label:'Work MVH'}] },
-    30: { tags:[{status:'work',label:'Work MVH'}] },
-    31: { tags:[{status:'pilates',label:'Pilates'}] },
+  11: {
+    1:  { tags:[{status:'work',label:'Work MVH'}] },
+    14: { tags:[{status:'work',label:'Work.'}] },
+    21: { tags:[{status:'work',label:'Work MVH'}] },
+    22: { tags:[{status:'work',label:'Work MVH'}] },
+  },
+  12: {
+    5:  { tags:[{status:'work',label:'Work.'}] },
+    12: { tags:[{status:'work',label:'Work MVH'}] },
+    13: { tags:[{status:'work',label:'Work MVH'}] },
+    17: { tags:[{status:'work',label:'MVH Ed (TEVAR)'}] },
+    26: { tags:[{status:'work',label:'Work.'}] },
   }
 };
 
 // ─── Calendar events (pulled from Google Calendar, fixed/non-draggable) ───────
-// personal = your own events; ryan = Ryan's travel; payday = pay days
+// personal = your own events; payday = pay days
 const calEvents = {
-  6: {
-    15: [{status:'personal',label:'MVH Education',fixed:true}],
-    19: [{status:'payday',label:'💰 Pay Day',fixed:true}],
-    20: [{status:'personal',label:'Pilates (CP)',fixed:true},{status:'personal',label:"Kendall's bday",fixed:true}],
-    23: [{status:'personal',label:'Therapy',fixed:true}],
-    25: [{status:'personal',label:'Goose Groom 🐾',fixed:true}],
-    28: [{status:'personal',label:'Book Club 📚',fixed:true}],
+  9: {
+    6:  [{status:'personal',label:"Ali Kuk's bday 🎂",fixed:true}],
+    8:  [{status:'personal',label:"Sam B bday 🎂",fixed:true}],
+    11: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    16: [{status:'personal',label:"Ashley P bday 🎂",fixed:true},{status:'work',label:'MVH Ed (Teams)',fixed:true}],
+    22: [{status:'personal',label:"Monkey bday 🎂",fixed:true}],
+    23: [{status:'personal',label:"Shannon's bday 🎂",fixed:true}],
+    25: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    27: [{status:'personal',label:"Marla's bday 🎂",fixed:true}],
+    28: [{status:'personal',label:"Selty bday 🎂",fixed:true}],
   },
-  7: {
-    3:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
-    4:  [{status:'personal',label:"Keith's bday 📞",fixed:true}],
-    15: [{status:'personal',label:'Goose OSU 🐾',fixed:true}],
-    17: [{status:'payday',label:'💰 Pay Day',fixed:true}],
-    18: [{status:'personal',label:'Book Club 📚',fixed:true}],
-    25: [{status:'personal',label:"Liv's Bday Party",fixed:true}],
+  10: {
+    1:  [{status:'personal',label:"Dental cleaning",fixed:true}],
+    8:  [{status:'personal',label:"Mompati bday 🎂",fixed:true}],
+    9:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    16: [{status:'personal',label:"Cathy's bday 🎂",fixed:true}],
+    22: [{status:'personal',label:"Lisa & Steve Anniv",fixed:true}],
+    23: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    26: [{status:'personal',label:"Kieran's bday 🎂",fixed:true}],
+  },
+  11: {
+    6:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    9:  [{status:'personal',label:"Goose's Birthday 🐾🎂",fixed:true}],
+    20: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+  },
+  12: {
+    4:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    6:  [{status:'personal',label:"Hoopsy bday 🎂",fixed:true}],
+    17: [{status:'work',label:'MVH Ed (TEVAR)',fixed:true}],
+    18: [{status:'payday',label:'💰 Pay Day',fixed:true},{status:'personal',label:"Alivia bday 🎂",fixed:true}],
+    21: [{status:'personal',label:"Tseli bday 🎂",fixed:true}],
+    30: [{status:'personal',label:"Andy Bell bday 🎂",fixed:true}],
     31: [{status:'payday',label:'💰 Pay Day',fixed:true}],
-  },
-  8: {
-    14: [{status:'payday',label:'💰 Pay Day',fixed:true}],
-    15: [{status:'personal',label:'Book Club 📚',fixed:true}],
-    21: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
-    22: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
-    23: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
-    28: [{status:'payday',label:'💰 Pay Day',fixed:true}],
   }
 };
 
-const STORAGE_KEY  = 'shift-cal-2026-v3';
-const monthNames   = {6:'June',7:'July',8:'August'};
+const STORAGE_KEY  = 'shift-cal-2026-q4-v1';
+const monthNames   = {9:'September',10:'October',11:'November',12:'December'};
 const DAY_LABELS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const TODAY        = {y:2026, m:6, d:18};
+const TODAY        = {y:2026, m:6, d:23};
 
 let cal       = JSON.parse(JSON.stringify(calBase));
 let undoStack = [];
@@ -337,7 +301,7 @@ const AZ_TABLE     = 'ShiftCalendar';
 const AZ_SAS       = 'sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2028-07-15T21:11:32Z&st=2026-06-23T12:56:32Z&spr=https&sig=W4SaoHlVqIjEaEB5jXb%2BVdqfSw%2FLKKxSEAbGHixjBkk%3D';
 const AZ_BASE      = `https://${AZ_ACCOUNT}.table.core.windows.net`;
 const AZ_PARTITION = 'shiftcal';
-const AZ_ROW       = 'data';
+const AZ_ROW       = 'q4data';
 
 async function azEnsureTable() {
   // Create table if it doesn't exist (safe to call repeatedly)
@@ -358,7 +322,7 @@ async function loadFromCloud() {
     const entity = await res.json();
     if (!entity.payload) return;
     const saved = JSON.parse(entity.payload);
-    [6,7,8].forEach(m => {
+    [9,10,11,12].forEach(m => {
       if (!saved[m]) return;
       Object.keys(saved[m]).forEach(d => {
         const day = +d;
@@ -372,7 +336,7 @@ async function loadFromCloud() {
 async function saveToCloud() {
   dot.className = 'save-dot saving';
   const payload = {};
-  [6,7,8].forEach(m => {
+  [9,10,11,12].forEach(m => {
     payload[m] = {};
     Object.keys(cal[m]).forEach(d => {
       payload[m][d] = { tags: cal[m][d].tags || [] };
@@ -637,16 +601,15 @@ const JUL4_NET = 459;   // July 4 1.5x shift net
 
 function getWeekEarnings(month, weekDays) {
   // weekDays: array of day numbers (1–31) that fall in this week row
+  // Only counts days within the goal period (Oct 1 – Dec 20)
   const result = { srmc: 0, mvh: 0, jul4: 0, total: 0, chips: [] };
   weekDays.forEach(d => {
     if (!d) return;
+    if (!inGoalPeriod(month, d)) return;
     const dayData = cal[month] && cal[month][d];
     if (!dayData || !dayData.tags) return;
     dayData.tags.forEach(tag => {
-      // Jul 4 special case (any work tag on July 4)
-      if (month === 7 && d === 4 && (tag.status === 'work' || tag.status === 'target-srmc')) {
-        result.jul4++;
-      } else if (tag.status === 'target-srmc') {
+      if (tag.status === 'target-srmc') {
         result.srmc++;
       } else if (tag.status === 'target-mvh') {
         result.mvh++;
@@ -654,12 +617,11 @@ function getWeekEarnings(month, weekDays) {
     });
   });
   result.total = (result.srmc * SHIFT_PAY['target-srmc'])
-               + (result.mvh  * SHIFT_PAY['target-mvh'])
-               + (result.jul4 * JUL4_NET);
+               + (result.mvh  * SHIFT_PAY['target-mvh']);
   return result;
 }
 
-const GOAL = 5000;
+const GOAL = 15000;
 
 function getTotalExtraEarnings() {
   let total = 0;
@@ -829,7 +791,7 @@ function rebuildAll() {
   const container = document.getElementById('months');
   container.innerHTML = '';
   let running = 0;
-  [6,7,8].forEach(m => {
+  [9,10,11,12].forEach(m => {
     const result = renderMonth(m, running);
     container.appendChild(result.block);
     running = result.runningTotal;
