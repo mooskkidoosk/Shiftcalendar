@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shift Calendar — Q4 2026</title>
+<title>Shift Calendar 2026</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,6 +204,90 @@
 <script>
 // ─── Base shift data ──────────────────────────────────────────────────────────
 const calBase = {
+  6: {
+    15: { tags:[{status:'work',label:'Work MVH Ed'}] },
+    16: { tags:[{status:'open',label:'Open'}] },
+    17: { tags:[{status:'work',label:'Work MVH'}] },
+    18: { tags:[{status:'target-srmc',label:'🎯 SRMC #1'}] },
+    19: { tags:[{status:'work',label:'Work MVH'}] },
+    20: { tags:[{status:'open',label:'Open'}] },
+    21: { tags:[{status:'pilates',label:'Pilates'}] },
+    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #2'}] },
+    23: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
+    24: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
+    25: { tags:[{status:'work',label:'Work MVH'}], ryan:['Trade Show'] },
+    26: { tags:[{status:'work',label:'Work MVH'}], ryan:['Golf Trip'] },
+    27: { tags:[{status:'open',label:'Open'}], ryan:['Golf Trip'] },
+    28: { tags:[{status:'blocked',label:'Book Club'}], ryan:['Golf Trip'] },
+    29: { tags:[{status:'target-srmc',label:'🎯 SRMC #3'}] },
+    30: { tags:[{status:'work',label:'Work MVH'}] },
+  },
+  7: {
+    1:  { tags:[{status:'pilates',label:'Pilates'}] },
+    2:  { tags:[{status:'work',label:'Work MVH'}] },
+    3:  { tags:[{status:'work',label:'Work MVH'}] },
+    4:  { tags:[{status:'work',label:'Work SRMC 🎯 1.5x'}] },
+    5:  { tags:[{status:'work',label:'Work SRMC +$5/hr'}] },
+    6:  { tags:[{status:'work',label:'Work MVH'}] },
+    7:  { tags:[{status:'target-srmc',label:'🎯 SRMC #4'}] },
+    8:  { tags:[{status:'pilates',label:'Pilates'}] },
+    9:  { tags:[{status:'open',label:'Open'}] },
+    10: { tags:[{status:'work',label:'Work MVH'}] },
+    11: { tags:[{status:'work',label:'Work MVH'}] },
+    12: { tags:[{status:'work',label:'Work MVH'}] },
+    13: { tags:[{status:'target-srmc',label:'🎯 SRMC #5'}] },
+    14: { tags:[{status:'pilates',label:'Pilates'}] },
+    15: { tags:[{status:'work',label:'Work MVH'}] },
+    16: { tags:[{status:'work',label:'Work MVH'}] },
+    17: { tags:[{status:'target-srmc',label:'🎯 SRMC #6'}] },
+    18: { tags:[{status:'blocked',label:'Book Club'}] },
+    19: { tags:[{status:'pilates',label:'Pilates'}] },
+    20: { tags:[{status:'work',label:'Work MVH'}] },
+    21: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
+    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #7'}], ryan:['New York'] },
+    23: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
+    24: { tags:[{status:'pilates',label:'Pilates'}], ryan:['New York'] },
+    25: { tags:[{status:'open',label:'Open'}] },
+    26: { tags:[{status:'open',label:'Open'}] },
+    27: { tags:[{status:'assumed',label:'Base shift'}] },
+    28: { tags:[{status:'assumed',label:'Base shift'}] },
+    29: { tags:[{status:'work',label:'Cover Brandi'}] },
+    30: { tags:[{status:'pilates',label:'Pilates'}] },
+    31: { tags:[{status:'assumed',label:'Base shift'}] },
+  },
+  8: {
+    1:  { tags:[{status:'target-srmc',label:'🎯 SRMC #8'}] },
+    2:  { tags:[{status:'open',label:'Open'}] },
+    3:  { tags:[{status:'assumed',label:'Base shift'}] },
+    4:  { tags:[{status:'target-srmc',label:'🎯 SRMC #9'}] },
+    5:  { tags:[{status:'pilates',label:'Pilates'}] },
+    6:  { tags:[{status:'open',label:'Open'}] },
+    7:  { tags:[{status:'open',label:'Open'}] },
+    8:  { tags:[{status:'work',label:'Work MVH'}] },
+    9:  { tags:[{status:'work',label:'Work MVH'}] },
+    10: { tags:[{status:'assumed',label:'Base shift'}] },
+    11: { tags:[{status:'pilates',label:'Pilates'}] },
+    12: { tags:[{status:'assumed',label:'Base shift'}] },
+    13: { tags:[{status:'target-mvh',label:'🎯 MVH #1'}] },
+    14: { tags:[{status:'assumed',label:'Base shift'}] },
+    15: { tags:[{status:'blocked',label:'Book Club'}] },
+    16: { tags:[{status:'open',label:'Open'}] },
+    17: { tags:[{status:'pilates',label:'Pilates'}] },
+    18: { tags:[{status:'assumed',label:'Base shift'}] },
+    19: { tags:[{status:'assumed',label:'Base shift'}] },
+    20: { tags:[{status:'target-mvh',label:'🎯 MVH #2'}] },
+    21: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    22: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    23: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    24: { tags:[{status:'pilates',label:'Pilates'}] },
+    25: { tags:[{status:'assumed',label:'Base shift'}] },
+    26: { tags:[{status:'open',label:'MVH Ed Eve'}] },
+    27: { tags:[{status:'target-mvh',label:'🎯 MVH #3'}] },
+    28: { tags:[{status:'open',label:'Open'}] },
+    29: { tags:[{status:'work',label:'Work MVH'}] },
+    30: { tags:[{status:'work',label:'Work MVH'}] },
+    31: { tags:[{status:'pilates',label:'Pilates'}] },
+  },
   9: {
     3:  { tags:[{status:'blocked',label:'✈️ To Atlanta'}] },
     4:  { tags:[{status:'blocked',label:'✈️ To Joburg → SA'}] },
@@ -218,7 +302,6 @@ const calBase = {
     29: { tags:[{status:'open',label:'Open'}] },
   },
   10: {
-    1:  { tags:[{status:'personal',label:'Anniversary ❤️'}] },
     3:  { tags:[{status:'work',label:'Work.'}] },
     10: { tags:[{status:'work',label:'Work MVH'}] },
     11: { tags:[{status:'work',label:'Work MVH'}] },
@@ -246,8 +329,33 @@ const calBase = {
 };
 
 // ─── Calendar events (pulled from Google Calendar, fixed/non-draggable) ───────
-// personal = your own events; payday = pay days
+// personal = your own events; ryan = Ryan's travel; payday = pay days
 const calEvents = {
+  6: {
+    15: [{status:'personal',label:'MVH Education',fixed:true}],
+    19: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    20: [{status:'personal',label:'Pilates (CP)',fixed:true},{status:'personal',label:"Kendall's bday",fixed:true}],
+    23: [{status:'personal',label:'Therapy',fixed:true}],
+    25: [{status:'personal',label:'Goose Groom 🐾',fixed:true}],
+    28: [{status:'personal',label:'Book Club 📚',fixed:true}],
+  },
+  7: {
+    3:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    4:  [{status:'personal',label:"Keith's bday 📞",fixed:true}],
+    15: [{status:'personal',label:'Goose OSU 🐾',fixed:true}],
+    17: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    18: [{status:'personal',label:'Book Club 📚',fixed:true}],
+    25: [{status:'personal',label:"Liv's Bday Party",fixed:true}],
+    31: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+  },
+  8: {
+    14: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    15: [{status:'personal',label:'Book Club 📚',fixed:true}],
+    21: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    22: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    23: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    28: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+  },
   9: {
     6:  [{status:'personal',label:"Ali Kuk's bday 🎂",fixed:true}],
     8:  [{status:'personal',label:"Sam B bday 🎂",fixed:true}],
@@ -260,7 +368,7 @@ const calEvents = {
     28: [{status:'personal',label:"Selty bday 🎂",fixed:true}],
   },
   10: {
-    1:  [{status:'personal',label:"Dental cleaning",fixed:true}],
+    1:  [{status:'personal',label:"Anniversary ❤️",fixed:true},{status:'personal',label:"Dental cleaning",fixed:true}],
     8:  [{status:'personal',label:"Mompati bday 🎂",fixed:true}],
     9:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
     16: [{status:'personal',label:"Cathy's bday 🎂",fixed:true}],
@@ -284,8 +392,8 @@ const calEvents = {
   }
 };
 
-const STORAGE_KEY  = 'shift-cal-2026-q4-v1';
-const monthNames   = {9:'September',10:'October',11:'November',12:'December'};
+const STORAGE_KEY  = 'shift-cal-2026-full-v1';
+const monthNames   = {6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'};
 const DAY_LABELS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const TODAY        = {y:2026, m:6, d:23};
 
@@ -301,7 +409,7 @@ const AZ_TABLE     = 'ShiftCalendar';
 const AZ_SAS       = 'sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2028-07-15T21:11:32Z&st=2026-06-23T12:56:32Z&spr=https&sig=W4SaoHlVqIjEaEB5jXb%2BVdqfSw%2FLKKxSEAbGHixjBkk%3D';
 const AZ_BASE      = `https://${AZ_ACCOUNT}.table.core.windows.net`;
 const AZ_PARTITION = 'shiftcal';
-const AZ_ROW       = 'q4data';
+const AZ_ROW       = 'fulldata';
 
 async function azEnsureTable() {
   // Create table if it doesn't exist (safe to call repeatedly)
@@ -332,7 +440,7 @@ async function loadFromCloud() {
     const entity = await res.json();
     if (!entity.payload) { if (errEl) errEl.style.display = 'none'; return; }
     const saved = JSON.parse(entity.payload);
-    [9,10,11,12].forEach(m => {
+    [6,7,8,9,10,11,12].forEach(m => {
       if (!saved[m]) return;
       Object.keys(saved[m]).forEach(d => {
         const day = +d;
@@ -350,7 +458,7 @@ async function loadFromCloud() {
 async function saveToCloud() {
   dot.className = 'save-dot saving';
   const payload = {};
-  [9,10,11,12].forEach(m => {
+  [6,7,8,9,10,11,12].forEach(m => {
     payload[m] = {};
     Object.keys(cal[m]).forEach(d => {
       payload[m][d] = { tags: cal[m][d].tags || [] };
@@ -607,6 +715,17 @@ function buildDayCell(month, d, isToday) {
 
 // ─── Weekly earnings calculator ──────────────────────────────────────────────
 // Net pay estimates per extra shift type
+// Goal 1: Jun–Aug (months 6-8), Goal 2: Oct 1 – Dec 20
+function inGoal1Period(month) { return month >= 6 && month <= 8; }
+function inGoal2Period(month, day) {
+  if (month < 10 || month > 12) return false;
+  if (month === 12 && day > 20) return false;
+  return true;
+}
+function inGoalPeriod(month, day) {
+  return inGoal1Period(month) || inGoal2Period(month, day);
+}
+
 const SHIFT_PAY = {
   'target-srmc': 442,   // SRMC extra (40.47x8 + 45.47x4 + 12/hr incentive) net ~$442
   'target-mvh':  657,   // MVH double-pay ($40.25 base x2 x12hr), net ~$657
@@ -614,16 +733,16 @@ const SHIFT_PAY = {
 const JUL4_NET = 459;   // July 4 1.5x shift net
 
 function getWeekEarnings(month, weekDays) {
-  // weekDays: array of day numbers (1–31) that fall in this week row
-  // Only counts days within the goal period (Oct 1 – Dec 20)
-  const result = { srmc: 0, mvh: 0, jul4: 0, total: 0, chips: [] };
+  const result = { srmc: 0, mvh: 0, jul4: 0, total: 0 };
   weekDays.forEach(d => {
     if (!d) return;
     if (!inGoalPeriod(month, d)) return;
     const dayData = cal[month] && cal[month][d];
     if (!dayData || !dayData.tags) return;
     dayData.tags.forEach(tag => {
-      if (tag.status === 'target-srmc') {
+      if (month === 7 && d === 4 && (tag.status === 'work' || tag.status === 'target-srmc')) {
+        result.jul4++;
+      } else if (tag.status === 'target-srmc') {
         result.srmc++;
       } else if (tag.status === 'target-mvh') {
         result.mvh++;
@@ -631,11 +750,13 @@ function getWeekEarnings(month, weekDays) {
     });
   });
   result.total = (result.srmc * SHIFT_PAY['target-srmc'])
-               + (result.mvh  * SHIFT_PAY['target-mvh']);
+               + (result.mvh  * SHIFT_PAY['target-mvh'])
+               + (result.jul4 * JUL4_NET);
   return result;
 }
 
-const GOAL = 15000;
+const GOAL1 = 5000;
+const GOAL2 = 15000;
 
 function getTotalExtraEarnings() {
   let total = 0;
@@ -706,25 +827,29 @@ function buildWeekEarningsRow(month, weekDays, runningTotal) {
     row.appendChild(net);
   }
 
-  // Running goal progress
-  const pct = Math.min(100, Math.round((runningTotal / GOAL) * 100));
-  const goalMet = runningTotal >= GOAL;
-  const goalEl = document.createElement('div');
-  goalEl.className = 'week-goal';
-  const barFill = document.createElement('div');
-  barFill.className = 'week-goal-bar-wrap';
-  const fill = document.createElement('div');
-  fill.className = 'week-goal-bar-fill' + (goalMet ? ' goal-met' : '');
-  fill.style.width = pct + '%';
-  barFill.appendChild(fill);
-  const goalLabel = document.createElement('span');
-  goalLabel.className = 'week-goal-label' + (goalMet ? ' goal-met-text' : '');
-  goalLabel.textContent = goalMet
-    ? `Goal met! $${runningTotal.toLocaleString()} / $${GOAL.toLocaleString()}`
-    : `$${runningTotal.toLocaleString()} / $${GOAL.toLocaleString()} (${pct}%)`;
-  goalEl.appendChild(barFill);
-  goalEl.appendChild(goalLabel);
-  row.appendChild(goalEl);
+  // Running goal progress — Goal 1 for Jun-Aug, Goal 2 for Oct-Dec
+  const activeGoal = inGoal1Period(month) ? GOAL1 : (inGoal2Period(month, 1) ? GOAL2 : null);
+  if (activeGoal !== null) {
+    const pct = Math.min(100, Math.round((runningTotal / activeGoal) * 100));
+    const goalMet = runningTotal >= activeGoal;
+    const goalEl = document.createElement('div');
+    goalEl.className = 'week-goal';
+    const barFill = document.createElement('div');
+    barFill.className = 'week-goal-bar-wrap';
+    const fill = document.createElement('div');
+    fill.className = 'week-goal-bar-fill' + (goalMet ? ' goal-met' : '');
+    fill.style.width = pct + '%';
+    barFill.appendChild(fill);
+    const goalLabel = document.createElement('span');
+    goalLabel.className = 'week-goal-label' + (goalMet ? ' goal-met-text' : '');
+    const goalNum = activeGoal === GOAL1 ? 1 : 2;
+    goalLabel.textContent = goalMet
+      ? `Goal ${goalNum} met! $${runningTotal.toLocaleString()} / $${activeGoal.toLocaleString()}`
+      : `Goal ${goalNum}: $${runningTotal.toLocaleString()} / $${activeGoal.toLocaleString()} (${pct}%)`;
+    goalEl.appendChild(barFill);
+    goalEl.appendChild(goalLabel);
+    row.appendChild(goalEl);
+  }
 
   return row;
 }
@@ -805,7 +930,10 @@ function rebuildAll() {
   const container = document.getElementById('months');
   container.innerHTML = '';
   let running = 0;
-  [9,10,11,12].forEach(m => {
+  [6,7,8,9,10,11,12].forEach(m => {
+    // Reset running total between goal periods (Sep is not a goal month)
+    if (m === 9) running = 0;
+    if (m === 10) running = 0; // Start fresh for Goal 2
     const result = renderMonth(m, running);
     container.appendChild(result.block);
     running = result.runningTotal;
@@ -813,9 +941,9 @@ function rebuildAll() {
   // Update projected net in header
   const el = document.getElementById('projectedNet');
   if (el) {
-    const total = getTotalExtraEarnings();
-    el.textContent = '~$' + total.toLocaleString();
-    el.style.color = total >= GOAL ? '#1A6B1A' : '#3A7A52';
+    const { goal1, goal2 } = getTotalExtraEarnings();
+    el.textContent = `~$${goal1.toLocaleString()} / ~$${goal2.toLocaleString()}`;
+    el.style.color = (goal1 >= GOAL1 && goal2 >= GOAL2) ? '#1A6B1A' : '#3A7A52';
   }
 }
 
@@ -880,9 +1008,15 @@ document.addEventListener('keydown', (e) => {
 populateStatusSelect();
 
 (async () => {
-  await loadFromCloud();
+  // Render immediately from base data, then overlay Azure data
   document.getElementById('loadOverlay').style.display = 'none';
   rebuildAll();
+  try {
+    await loadFromCloud();
+    rebuildAll();
+  } catch(e) {
+    console.warn('Azure sync failed, running offline:', e);
+  }
 })();
 </script>
 </body>
