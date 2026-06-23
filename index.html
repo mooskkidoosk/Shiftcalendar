@@ -315,12 +315,22 @@ async function azEnsureTable() {
 }
 
 async function loadFromCloud() {
+  const errEl = document.getElementById('loadOverlay');
   try {
     const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
+    if (errEl) errEl.textContent = 'Connecting to Azure...';
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) return; // 404 on first load is fine
+    if (!res.ok && res.status !== 404) {
+      if (errEl) errEl.textContent = `Azure error ${res.status}: ${await res.text()}`;
+      return;
+    }
+    if (res.status === 404) {
+      // First load, no data yet — that's fine
+      if (errEl) errEl.style.display = 'none';
+      return;
+    }
     const entity = await res.json();
-    if (!entity.payload) return;
+    if (!entity.payload) { if (errEl) errEl.style.display = 'none'; return; }
     const saved = JSON.parse(entity.payload);
     [9,10,11,12].forEach(m => {
       if (!saved[m]) return;
@@ -330,7 +340,11 @@ async function loadFromCloud() {
         cal[m][day].tags = saved[m][d].tags;
       });
     });
-  } catch(e) { console.warn('Load failed', e); }
+    if (errEl) errEl.style.display = 'none';
+  } catch(e) {
+    if (errEl) errEl.textContent = `Error: ${e.message}`;
+    console.warn('Load failed', e);
+  }
 }
 
 async function saveToCloud() {
