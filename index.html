@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Availability Calendar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F5F2; --surface: #FFFFFF; --border: #E4E0DA; --text: #1A1814; --text-muted: #8A8580;
+    --work: #B86B2F; --work-bg: #FDF0E6;
+    --assumed: #9E9790; --assumed-bg: #EDECEA;
+    --open: #3A7A52; --open-bg: #E8F4ED;
+    --blocked: #7A7672; --blocked-bg: #EEECEA;
+    --pilates: #4A6FA5; --pilates-bg: #E8EFF8;
+    --ryan: #7B5EA7; --ryan-bg: #F0ECF8;
+    --target-srmc: #C0392B; --target-srmc-bg: #FDECEA;
+    --target-mvh: #8B6914; --target-mvh-bg: #FDF6E3;
+    --personal: #2E7D6B; --personal-bg: #E6F4F1;
+    --payday: #1A6B1A; --payday-bg: #E8F5E8;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 60px; }
+  header { max-width: 960px; margin: 0 auto 20px; }
+  h1 { font-size: 21px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 3px; }
+  .subtitle { font-size: 12px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 14px; }
+  .goal-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 28px; flex-wrap: wrap; align-items: center; }
+  .goal-stat { display: flex; flex-direction: column; gap: 1px; }
+  .goal-num { font-size: 20px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+  .goal-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .months { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  .month-block { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .month-header { padding: 15px 20px 13px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 10px; }
+  .month-name { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+  .month-stats { font-size: 11.5px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .day-label-hdr { padding: 9px 4px 7px; text-align: center; font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .day { min-height: 90px; padding: 7px 5px 5px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; transition: background 0.15s; }
+  .day:nth-child(7n) { border-right: none; }
+  .day.empty { background: var(--bg); opacity: 0.4; min-height: 90px; }
+  .day-num { font-size: 12.5px; font-weight: 500; margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; pointer-events: none; flex-shrink: 0; }
+  .day.today .day-num { background: #1A1814; color: white; }
+
+  .tag {
+    font-size: 9px; font-weight: 500; padding: 1.5px 4px; border-radius: 3px; margin-bottom: 2px;
+    line-height: 1.4; display: flex; align-items: center; gap: 3px;
+    cursor: grab; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .tag:active { cursor: grabbing; }
+  .tag.dragging-tag { opacity: 0.35; transform: scale(0.95); }
+  .tag.fixed-tag { cursor: default; }
+  .tag .drag-handle { opacity: 0.35; font-size: 8px; flex-shrink: 0; }
+
+  .tag-work        { background: var(--work-bg);        color: var(--work); }
+  .tag-assumed     { background: var(--assumed-bg);     color: var(--assumed); }
+  .tag-open        { background: var(--open-bg);        color: var(--open); }
+  .tag-blocked     { background: var(--blocked-bg);     color: var(--blocked); }
+  .tag-pilates     { background: var(--pilates-bg);     color: var(--pilates); }
+  .tag-ryan        { background: var(--ryan-bg);        color: var(--ryan); font-style: italic; }
+  .tag-srmc        { background: var(--target-srmc-bg); color: var(--target-srmc); font-weight: 600; }
+  .tag-mvh-ex      { background: var(--target-mvh-bg);  color: var(--target-mvh); font-weight: 600; }
+  .tag-personal    { background: var(--personal-bg);    color: var(--personal); }
+  .tag-payday      { background: var(--payday-bg);      color: var(--payday); font-weight: 600; }
+
+  .day.drag-over { outline: 2px solid #3A7A52; outline-offset: -2px; background: #F0FAF3 !important; }
+  .tag.drop-flash { animation: flashTag 0.4s ease; }
+  @keyframes flashTag { 0%,100%{filter:none} 40%{filter:brightness(1.25)} }
+
+  .day.bg-open        { background: #FAFFF8; }
+  .day.bg-work        { background: #FEFAF5; }
+  .day.bg-assumed     { background: #F5F4F3; }
+  .day.bg-blocked     { background: #F8F8F7; }
+  .day.bg-pilates     { background: #F5F8FD; }
+  .day.bg-target-srmc { background: #FEF5F5; }
+  .day.bg-target-mvh  { background: #FEFCF0; }
+
+  .ryan-divider { height: 1px; background: var(--border); margin: 3px 0; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1A1814; color: white; border-radius: 8px; padding: 10px 18px; font-size: 13px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.25s cubic-bezier(.22,.68,0,1.2); z-index: 100; white-space: nowrap; }
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+  .toast-btn { background: none; border: 1px solid rgba(255,255,255,0.35); border-radius: 5px; color: white; font-size: 12px; font-family: 'DM Sans', sans-serif; padding: 4px 10px; cursor: pointer; font-weight: 500; }
+  .toast-btn:hover { background: rgba(255,255,255,0.1); }
+
+  .save-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #9E9790; margin-left: 8px; vertical-align: middle; transition: background 0.3s; }
+  .save-dot.saving { background: #B86B2F; }
+  .save-dot.saved  { background: #3A7A52; }
+
+  #loadOverlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); font-family: 'DM Mono', monospace; z-index: 200; }
+
+  .reset-btn { font-size: 11px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 5px; padding: 3px 9px; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-left: auto; }
+  .reset-btn:hover { border-color: #C0392B; color: #C0392B; }
+
+  .add-tag-btn {
+    position: absolute; top: 5px; right: 5px; width: 16px; height: 16px; border-radius: 50%;
+    border: none; background: var(--border); color: var(--text-muted); font-size: 11px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+    opacity: 0.5; transition: opacity 0.15s, background 0.15s, color 0.15s; z-index: 2;
+  }
+  .add-tag-btn:hover { opacity: 1; background: var(--open); color: white; }
+  .day.empty .add-tag-btn { display: none; }
+
+  .tag-remove { margin-left: 3px; opacity: 0.45; font-weight: 700; padding: 0 2px; border-radius: 2px; flex-shrink: 0; }
+  .tag-remove:hover { opacity: 1; background: rgba(0,0,0,0.15); }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(26,24,20,0.45); display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px; }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: var(--surface); border-radius: 12px; padding: 20px; width: 100%; max-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .modal-sub { font-size: 12px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+  .modal-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal-select, .modal-input { width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--bg); color: var(--text); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .modal-btn { flex: 1; padding: 9px; border-radius: 7px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .modal-btn-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+  .modal-btn-primary { background: #1A1814; color: white; }
+  .modal-btn-primary:hover { background: #2a2722; }
+
+  .summary-bar { padding: 13px 20px; border-top: 1px solid var(--border); display: flex; gap: 22px; flex-wrap: wrap; }
+  .summary-stat { display: flex; flex-direction: column; gap: 1px; }
+  .summary-num { font-size: 19px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+  .summary-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .num-work{color:var(--work)} .num-pilates{color:var(--pilates)} .num-srmc{color:var(--target-srmc)}
+  .num-mvh{color:var(--target-mvh)} .num-assumed{color:var(--assumed)}
+
+  .week-earnings {
+    grid-column: 1 / -1;
+    padding: 7px 14px;
+    background: #F7F5F2;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .week-earnings.has-extra { background: #F0FAF3; border-left: 3px solid var(--open); }
+  .week-earnings.no-extra  { background: var(--bg); }
+  .week-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted); min-width: 60px; }
+  .week-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .week-chip { font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; }
+  .wchip-srmc { background: var(--target-srmc-bg); color: var(--target-srmc); }
+  .wchip-mvh  { background: var(--target-mvh-bg);  color: var(--target-mvh); }
+  .wchip-jul4 { background: #E8F5E8; color: #1A6B1A; }
+  .week-net { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; color: var(--open); }
+  .week-net.zero { color: var(--text-muted); font-size: 11px; font-weight: 400; }
+  .week-divider { height: 1px; background: var(--border); grid-column: 1/-1; }
+  .week-goal { display: flex; align-items: center; gap: 8px; margin-left: 10px; }
+  .week-goal-bar-wrap { width: 80px; height: 5px; background: var(--border); border-radius: 3px; flex-shrink: 0; overflow: hidden; }
+  .week-goal-bar-fill { height: 100%; background: var(--open); border-radius: 3px; transition: width 0.3s ease; }
+  .week-goal-bar-fill.goal-met { background: #1A6B1A; }
+  .week-goal-label { font-family: "DM Mono", monospace; font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+  .week-goal-label.goal-met-text { color: #1A6B1A; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="loadOverlay">Loading saved calendar…</div>
+<header>
+  <h1>Shift Availability · Jun–Aug 2026 <span class="save-dot" id="saveDot"></span></h1>
+  <div class="subtitle">Neo + Ryan · Goal 1: $5,000 by Aug 31 · drag tags between days · tap + to add, × to remove · saves automatically</div>
+  <div class="goal-bar">
+    <div class="goal-stat"><span class="goal-num" style="color:#C0392B">$5,000</span><span class="goal-label">Goal 1 target</span></div>
+    <div class="goal-stat"><span class="goal-num" style="color:#B86B2F">16</span><span class="goal-label">Shifts needed</span></div>
+    <div class="goal-stat"><span class="goal-num" style="color:var(--target-srmc)">12</span><span class="goal-label">SRMC (~$442)</span></div>
+    <div class="goal-stat"><span class="goal-num" style="color:var(--target-mvh)">3</span><span class="goal-label">MVH (~$657)</span></div>
+    <div class="goal-stat"><span class="goal-num" style="color:#3A7A52">1</span><span class="goal-label">Jul 4 1.5x (~$459)</span></div>
+    <div class="goal-stat"><span class="goal-num" id="projectedNet" style="color:#3A7A52">~$6,102</span><span class="goal-label">Projected net</span></div>
+    <button class="reset-btn" id="resetBtn">Reset to original</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--work)"></div>Work</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--assumed)"></div>Assumed base</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--target-srmc)"></div>🎯 SRMC target</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--target-mvh)"></div>🎯 MVH target</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--pilates)"></div>Pilates</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--open)"></div>Open</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blocked)"></div>Blocked</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ryan)"></div><em>Ryan away (fixed)</em></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--personal)"></div>Personal (from cal)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--payday)"></div>Pay Day</div>
+  </div>
+</header>
+<div class="months" id="months"></div>
+<div class="toast" id="undoBar">
+  <span id="undoMsg">Tag moved</span>
+  <button class="toast-btn" id="undoBtn">Undo</button>
+</div>
+
+<div class="modal-overlay" id="addTagOverlay">
+  <div class="modal">
+    <div class="modal-title">Add tag</div>
+    <div class="modal-sub" id="addTagDate"></div>
+    <label class="modal-label" for="addTagStatus">Type</label>
+    <select class="modal-select" id="addTagStatus"></select>
+    <label class="modal-label" for="addTagLabel">Label</label>
+    <input class="modal-input" id="addTagLabel" type="text" maxlength="40" placeholder="e.g. Work MVH">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" id="addTagCancel">Cancel</button>
+      <button class="modal-btn modal-btn-primary" id="addTagConfirm">Add tag</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Base shift data ──────────────────────────────────────────────────────────
+const calBase = {
+  6: {
+    15: { tags:[{status:'work',label:'Work MVH Ed'}] },
+    16: { tags:[{status:'open',label:'Open'}] },
+    17: { tags:[{status:'work',label:'Work MVH'}] },
+    18: { tags:[{status:'target-srmc',label:'🎯 SRMC #1'}] },
+    19: { tags:[{status:'work',label:'Work MVH'}] },
+    20: { tags:[{status:'open',label:'Open'}] },
+    21: { tags:[{status:'pilates',label:'Pilates'}] },
+    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #2'}] },
+    23: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
+    24: { tags:[{status:'work',label:'Work MVH Ed'}], ryan:['Trade Show'] },
+    25: { tags:[{status:'work',label:'Work MVH'}], ryan:['Trade Show'] },
+    26: { tags:[{status:'work',label:'Work MVH'}], ryan:['Golf Trip'] },
+    27: { tags:[{status:'open',label:'Open'}], ryan:['Golf Trip'] },
+    28: { tags:[{status:'blocked',label:'Book Club'}], ryan:['Golf Trip'] },
+    29: { tags:[{status:'target-srmc',label:'🎯 SRMC #3'}] },
+    30: { tags:[{status:'work',label:'Work MVH'}] },
+  },
+  7: {
+    1:  { tags:[{status:'pilates',label:'Pilates'}] },
+    2:  { tags:[{status:'work',label:'Work MVH'}] },
+    3:  { tags:[{status:'work',label:'Work MVH'}] },
+    4:  { tags:[{status:'work',label:'Work SRMC 🎯 1.5x'}] },
+    5:  { tags:[{status:'work',label:'Work SRMC'}] },
+    6:  { tags:[{status:'work',label:'Work MVH'}] },
+    7:  { tags:[{status:'target-srmc',label:'🎯 SRMC #4'}] },
+    8:  { tags:[{status:'pilates',label:'Pilates'}] },
+    9:  { tags:[{status:'open',label:'Open'}] },
+    10: { tags:[{status:'work',label:'Work MVH'}] },
+    11: { tags:[{status:'work',label:'Work MVH'}] },
+    12: { tags:[{status:'work',label:'Work MVH'}] },
+    13: { tags:[{status:'target-srmc',label:'🎯 SRMC #5'}] },
+    14: { tags:[{status:'pilates',label:'Pilates'}] },
+    15: { tags:[{status:'work',label:'Work MVH'}] },
+    16: { tags:[{status:'work',label:'Work MVH'}] },
+    17: { tags:[{status:'target-srmc',label:'🎯 SRMC #6'}] },
+    18: { tags:[{status:'blocked',label:'Book Club'}] },
+    19: { tags:[{status:'pilates',label:'Pilates'}] },
+    20: { tags:[{status:'work',label:'Work MVH'}] },
+    21: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
+    22: { tags:[{status:'target-srmc',label:'🎯 SRMC #7'}], ryan:['New York'] },
+    23: { tags:[{status:'work',label:'Work MVH'}], ryan:['New York'] },
+    24: { tags:[{status:'pilates',label:'Pilates'}], ryan:['New York'] },
+    25: { tags:[{status:'open',label:'Open'}] },
+    26: { tags:[{status:'open',label:'Open'}] },
+    27: { tags:[{status:'assumed',label:'Base shift'}] },
+    28: { tags:[{status:'assumed',label:'Base shift'}] },
+    29: { tags:[{status:'work',label:'Cover Brandi'}] },
+    30: { tags:[{status:'pilates',label:'Pilates'}] },
+    31: { tags:[{status:'assumed',label:'Base shift'}] },
+  },
+  8: {
+    1:  { tags:[{status:'target-srmc',label:'🎯 SRMC #8'}] },
+    2:  { tags:[{status:'open',label:'Open'}] },
+    3:  { tags:[{status:'assumed',label:'Base shift'}] },
+    4:  { tags:[{status:'target-srmc',label:'🎯 SRMC #9'}] },
+    5:  { tags:[{status:'pilates',label:'Pilates'}] },
+    6:  { tags:[{status:'open',label:'Open'}] },
+    7:  { tags:[{status:'open',label:'Open'}] },
+    8:  { tags:[{status:'work',label:'Work MVH'}] },
+    9:  { tags:[{status:'work',label:'Work MVH'}] },
+    10: { tags:[{status:'assumed',label:'Base shift'}] },
+    11: { tags:[{status:'pilates',label:'Pilates'}] },
+    12: { tags:[{status:'assumed',label:'Base shift'}] },
+    13: { tags:[{status:'target-mvh',label:'🎯 MVH #1'}] },
+    14: { tags:[{status:'assumed',label:'Base shift'}] },
+    15: { tags:[{status:'blocked',label:'Book Club'}] },
+    16: { tags:[{status:'open',label:'Open'}] },
+    17: { tags:[{status:'pilates',label:'Pilates'}] },
+    18: { tags:[{status:'assumed',label:'Base shift'}] },
+    19: { tags:[{status:'assumed',label:'Base shift'}] },
+    20: { tags:[{status:'target-mvh',label:'🎯 MVH #2'}] },
+    21: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    22: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    23: { tags:[{status:'blocked',label:"Emmy's Wedding"}] },
+    24: { tags:[{status:'pilates',label:'Pilates'}] },
+    25: { tags:[{status:'assumed',label:'Base shift'}] },
+    26: { tags:[{status:'open',label:'MVH Ed Eve'}] },
+    27: { tags:[{status:'target-mvh',label:'🎯 MVH #3'}] },
+    28: { tags:[{status:'open',label:'Open'}] },
+    29: { tags:[{status:'work',label:'Work MVH'}] },
+    30: { tags:[{status:'work',label:'Work MVH'}] },
+    31: { tags:[{status:'pilates',label:'Pilates'}] },
+  }
+};
+
+// ─── Calendar events (pulled from Google Calendar, fixed/non-draggable) ───────
+// personal = your own events; ryan = Ryan's travel; payday = pay days
+const calEvents = {
+  6: {
+    15: [{status:'personal',label:'MVH Education',fixed:true}],
+    19: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    20: [{status:'personal',label:'Pilates (CP)',fixed:true},{status:'personal',label:"Kendall's bday",fixed:true}],
+    23: [{status:'personal',label:'Therapy',fixed:true}],
+    25: [{status:'personal',label:'Goose Groom 🐾',fixed:true}],
+    28: [{status:'personal',label:'Book Club 📚',fixed:true}],
+  },
+  7: {
+    3:  [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    4:  [{status:'personal',label:"Keith's bday 📞",fixed:true}],
+    15: [{status:'personal',label:'Goose OSU 🐾',fixed:true}],
+    17: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    18: [{status:'personal',label:'Book Club 📚',fixed:true}],
+    25: [{status:'personal',label:"Liv's Bday Party",fixed:true}],
+    31: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+  },
+  8: {
+    14: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+    15: [{status:'personal',label:'Book Club 📚',fixed:true}],
+    21: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    22: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    23: [{status:'personal',label:'Emmy Wedding 💍',fixed:true}],
+    28: [{status:'payday',label:'💰 Pay Day',fixed:true}],
+  }
+};
+
+const STORAGE_KEY  = 'shift-cal-2026-v3';
+const monthNames   = {6:'June',7:'July',8:'August'};
+const DAY_LABELS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const TODAY        = {y:2026, m:6, d:18};
+
+let cal       = JSON.parse(JSON.stringify(calBase));
+let undoStack = [];
+let undoTimer = null;
+let saveTimer = null;
+const dot     = document.getElementById('saveDot');
+
+// ─── Azure Table Storage ────────────────────────────────────────────────────
+const AZ_ACCOUNT   = 'extrashiftcalendar';
+const AZ_TABLE     = 'ShiftCalendar';
+const AZ_SAS       = 'sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2028-07-15T21:11:32Z&st=2026-06-23T12:56:32Z&spr=https&sig=W4SaoHlVqIjEaEB5jXb%2BVdqfSw%2FLKKxSEAbGHixjBkk%3D';
+const AZ_BASE      = `https://${AZ_ACCOUNT}.table.core.windows.net`;
+const AZ_PARTITION = 'shiftcal';
+const AZ_ROW       = 'data';
+
+async function azEnsureTable() {
+  // Create table if it doesn't exist (safe to call repeatedly)
+  try {
+    await fetch(`${AZ_BASE}/Tables?${AZ_SAS}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ TableName: AZ_TABLE })
+    });
+  } catch(e) { /* ignore — table likely exists */ }
+}
+
+async function loadFromCloud() {
+  try {
+    const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return; // 404 on first load is fine
+    const entity = await res.json();
+    if (!entity.payload) return;
+    const saved = JSON.parse(entity.payload);
+    [6,7,8].forEach(m => {
+      if (!saved[m]) return;
+      Object.keys(saved[m]).forEach(d => {
+        const day = +d;
+        if (!cal[m][day]) cal[m][day] = {};
+        cal[m][day].tags = saved[m][d].tags;
+      });
+    });
+  } catch(e) { console.warn('Load failed', e); }
+}
+
+async function saveToCloud() {
+  dot.className = 'save-dot saving';
+  const payload = {};
+  [6,7,8].forEach(m => {
+    payload[m] = {};
+    Object.keys(cal[m]).forEach(d => {
+      payload[m][d] = { tags: cal[m][d].tags || [] };
+    });
+  });
+  try {
+    await azEnsureTable();
+    const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
+    const body = JSON.stringify({
+      PartitionKey: AZ_PARTITION,
+      RowKey: AZ_ROW,
+      payload: JSON.stringify(payload)
+    });
+    // InsertOrReplace (UPSERT)
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body
+    });
+    if (res.ok || res.status === 204) {
+      dot.className = 'save-dot saved';
+      setTimeout(() => dot.className = 'save-dot', 2000);
+    } else {
+      dot.className = 'save-dot';
+      console.warn('Save failed', res.status, await res.text());
+    }
+  } catch(e) { dot.className = 'save-dot'; console.warn('Save error', e); }
+}
+
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToCloud, 600); }
+
+// ─── Toast / undo ─────────────────────────────────────────────────────────────
+function showUndo(msg) {
+  document.getElementById('undoMsg').textContent = msg;
+  document.getElementById('undoBar').classList.add('visible');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => document.getElementById('undoBar').classList.remove('visible'), 5000);
+}
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (!undoStack.length) return;
+  const entry = undoStack.pop();
+  if (entry.type === 'move') {
+    cal[entry.fromMonth][entry.fromDay].tags = entry.fromTagsSnap;
+    cal[entry.toMonth][entry.toDay].tags     = entry.toTagsSnap;
+  } else if (entry.type === 'add' || entry.type === 'delete') {
+    if (!cal[entry.month][entry.day]) cal[entry.month][entry.day] = {};
+    cal[entry.month][entry.day].tags = entry.tagsSnap;
+  }
+  rebuildAll();
+  scheduleSave();
+  document.getElementById('undoBar').classList.remove('visible');
+});
+
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  if (!confirm('Reset to original? All tag moves will be lost.')) return;
+  cal = JSON.parse(JSON.stringify(calBase));
+  undoStack = [];
+  rebuildAll();
+  try { const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`; await fetch(url, { method: 'DELETE', headers: { 'If-Match': '*' } }); } catch(e) {}
+  dot.className = 'save-dot';
+  showUndo('Reset to original');
+});
+
+// ─── Tag helpers ──────────────────────────────────────────────────────────────
+function tagClass(status) {
+  const map = { pilates:'tag-pilates', work:'tag-work', assumed:'tag-assumed',
+                open:'tag-open', 'target-srmc':'tag-srmc', 'target-mvh':'tag-mvh-ex',
+                personal:'tag-personal', payday:'tag-payday' };
+  return map[status] || 'tag-blocked';
+}
+
+const STATUS_META = [
+  { value: 'work',         label: 'Work',           defaultLabel: 'Work' },
+  { value: 'assumed',      label: 'Assumed base',   defaultLabel: 'Base shift' },
+  { value: 'open',         label: 'Open',           defaultLabel: 'Open' },
+  { value: 'blocked',      label: 'Blocked',        defaultLabel: 'Blocked' },
+  { value: 'pilates',      label: 'Pilates',        defaultLabel: 'Pilates' },
+  { value: 'target-srmc',  label: '🎯 SRMC target', defaultLabel: '🎯 SRMC' },
+  { value: 'target-mvh',   label: '🎯 MVH target',  defaultLabel: '🎯 MVH' },
+];
+
+function removeTag(month, day, tagIndex) {
+  if (!cal[month] || !cal[month][day] || !cal[month][day].tags) return;
+  const snap = JSON.parse(JSON.stringify(cal[month][day].tags));
+  const [removed] = cal[month][day].tags.splice(tagIndex, 1);
+  if (!removed) return;
+  undoStack.push({ type: 'delete', month, day, tagsSnap: snap });
+  rebuildAll();
+  scheduleSave();
+  showUndo(`Removed "${removed.label}"`);
+}
+
+const STATUS_PRIORITY = ['work','target-srmc','target-mvh','pilates','assumed','blocked','open'];
+function dominantBg(tags) {
+  if (!tags || !tags.length) return '';
+  for (const s of STATUS_PRIORITY) {
+    if (tags.some(t => t.status === s)) return `bg-${s}`;
+  }
+  return '';
+}
+
+// ─── Drag state ───────────────────────────────────────────────────────────────
+let dragInfo = null;
+
+function buildTag(tagObj, month, day, tagIndex) {
+  const el = document.createElement('span');
+  const isFixed = tagObj.fixed;
+  el.className = `tag ${tagClass(tagObj.status)}${isFixed ? ' fixed-tag' : ''}`;
+
+  if (!isFixed) {
+    el.draggable = true;
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    el.appendChild(handle);
+    el.dataset.month    = month;
+    el.dataset.day      = day;
+    el.dataset.tagIndex = tagIndex;
+    el.addEventListener('dragstart', (e) => {
+      dragInfo = { fromMonth: month, fromDay: day, tagIndex };
+      el.classList.add('dragging-tag');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tagObj.label);
+      e.stopPropagation();
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging-tag');
+      document.querySelectorAll('.day.drag-over').forEach(d => d.classList.remove('drag-over'));
+    });
+  }
+
+  const txt = document.createTextNode(tagObj.label);
+  el.appendChild(txt);
+
+  if (!isFixed) {
+    const rm = document.createElement('span');
+    rm.className = 'tag-remove';
+    rm.textContent = '×';
+    rm.title = 'Remove tag';
+    rm.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeTag(month, day, tagIndex);
+    });
+    el.appendChild(rm);
+  }
+
+  return el;
+}
+
+function buildDayCell(month, d, isToday) {
+  const dayData   = cal[month] && cal[month][d];
+  const calEvts   = (calEvents[month] && calEvents[month][d]) || [];
+  const cell = document.createElement('div');
+  cell.className = 'day';
+  cell.dataset.month = month;
+  cell.dataset.day   = d;
+
+  if (dayData && dayData.tags) {
+    const bg = dominantBg(dayData.tags);
+    if (bg) cell.classList.add(bg);
+  }
+  if (isToday) cell.classList.add('today');
+
+  cell.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (!dragInfo) return;
+    if (+cell.dataset.month === dragInfo.fromMonth && +cell.dataset.day === dragInfo.fromDay) return;
+    cell.classList.add('drag-over');
+    e.dataTransfer.dropEffect = 'move';
+  });
+  cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+  cell.addEventListener('drop', (e) => {
+    e.preventDefault();
+    cell.classList.remove('drag-over');
+    if (!dragInfo) return;
+    const toMonth = +cell.dataset.month;
+    const toDay   = +cell.dataset.day;
+    if (toMonth === dragInfo.fromMonth && toDay === dragInfo.fromDay) return;
+
+    const fromMonth = dragInfo.fromMonth;
+    const fromDay   = dragInfo.fromDay;
+    const tagIndex  = dragInfo.tagIndex;
+
+    const fromTagsSnap = JSON.parse(JSON.stringify(cal[fromMonth][fromDay].tags));
+    const toTagsSnap   = JSON.parse(JSON.stringify((cal[toMonth][toDay] && cal[toMonth][toDay].tags) || []));
+
+    const [movedTag] = cal[fromMonth][fromDay].tags.splice(tagIndex, 1);
+    if (!cal[toMonth][toDay]) cal[toMonth][toDay] = { tags: [] };
+    if (!cal[toMonth][toDay].tags) cal[toMonth][toDay].tags = [];
+    cal[toMonth][toDay].tags.push(movedTag);
+
+    undoStack.push({ type: 'move', fromMonth, fromDay, fromTagsSnap, toMonth, toDay, toTagsSnap });
+    rebuildAll();
+    scheduleSave();
+
+    const newCell = document.querySelector(`.day[data-month="${toMonth}"][data-day="${toDay}"]`);
+    if (newCell) {
+      const tags = newCell.querySelectorAll('.tag:not(.fixed-tag)');
+      const last = tags[tags.length - 1];
+      if (last) { last.classList.add('drop-flash'); setTimeout(() => last.classList.remove('drop-flash'), 450); }
+    }
+    showUndo(`Moved "${movedTag.label}" → ${monthNames[toMonth]} ${toDay}`);
+    dragInfo = null;
+  });
+
+  const numEl = document.createElement('div');
+  numEl.className = 'day-num';
+  numEl.textContent = d;
+  cell.appendChild(numEl);
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-tag-btn';
+  addBtn.type = 'button';
+  addBtn.textContent = '+';
+  addBtn.title = 'Add tag';
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAddTagModal(month, d);
+  });
+  cell.appendChild(addBtn);
+
+  // Shift tags (draggable)
+  if (dayData) {
+    const neoDiv = document.createElement('div');
+    (dayData.tags || []).forEach((tagObj, idx) => {
+      neoDiv.appendChild(buildTag(tagObj, month, d, idx));
+    });
+    cell.appendChild(neoDiv);
+  }
+
+  // Ryan fixed divider
+  if (dayData && dayData.ryan && dayData.ryan.length) {
+    const div = document.createElement('div'); div.className = 'ryan-divider'; cell.appendChild(div);
+    const rDiv = document.createElement('div');
+    dayData.ryan.forEach(label => {
+      const t = document.createElement('span'); t.className = 'tag tag-ryan fixed-tag'; t.textContent = '↑ ' + label; rDiv.appendChild(t);
+    });
+    cell.appendChild(rDiv);
+  }
+
+  // Calendar events (fixed, below divider)
+  if (calEvts.length) {
+    if (dayData) {
+      const div2 = document.createElement('div'); div2.className = 'ryan-divider'; cell.appendChild(div2);
+    }
+    const evtDiv = document.createElement('div');
+    calEvts.forEach(evt => { evtDiv.appendChild(buildTag(evt, month, d, -1)); });
+    cell.appendChild(evtDiv);
+  }
+
+  return cell;
+}
+
+// ─── Weekly earnings calculator ──────────────────────────────────────────────
+// Net pay estimates per extra shift type
+const SHIFT_PAY = {
+  'target-srmc': 442,   // SRMC extra (40.47x8 + 45.47x4 + 12/hr incentive) net ~$442
+  'target-mvh':  657,   // MVH double-pay ($40.25 base x2 x12hr), net ~$657
+};
+const JUL4_NET = 459;   // July 4 1.5x shift net
+
+function getWeekEarnings(month, weekDays) {
+  // weekDays: array of day numbers (1–31) that fall in this week row
+  const result = { srmc: 0, mvh: 0, jul4: 0, total: 0, chips: [] };
+  weekDays.forEach(d => {
+    if (!d) return;
+    const dayData = cal[month] && cal[month][d];
+    if (!dayData || !dayData.tags) return;
+    dayData.tags.forEach(tag => {
+      // Jul 4 special case (any work tag on July 4)
+      if (month === 7 && d === 4 && (tag.status === 'work' || tag.status === 'target-srmc')) {
+        result.jul4++;
+      } else if (tag.status === 'target-srmc') {
+        result.srmc++;
+      } else if (tag.status === 'target-mvh') {
+        result.mvh++;
+      }
+    });
+  });
+  result.total = (result.srmc * SHIFT_PAY['target-srmc'])
+               + (result.mvh  * SHIFT_PAY['target-mvh'])
+               + (result.jul4 * JUL4_NET);
+  return result;
+}
+
+const GOAL = 5000;
+
+function getTotalExtraEarnings() {
+  let total = 0;
+  [6, 7, 8].forEach(month => {
+    const data = cal[month] || {};
+    Object.keys(data).forEach(d => {
+      const day = +d;
+      (data[d].tags || []).forEach(tag => {
+        if (month === 7 && day === 4 && (tag.status === 'work' || tag.status === 'target-srmc')) {
+          total += JUL4_NET;
+        } else if (tag.status === 'target-srmc') {
+          total += SHIFT_PAY['target-srmc'];
+        } else if (tag.status === 'target-mvh') {
+          total += SHIFT_PAY['target-mvh'];
+        }
+      });
+    });
+  });
+  return total;
+}
+
+function buildWeekEarningsRow(month, weekDays, runningTotal) {
+  const row = document.createElement('div');
+  row.className = 'week-earnings';
+
+  const earnings = getWeekEarnings(month, weekDays);
+  const hasExtra = earnings.total > 0;
+  row.classList.add(hasExtra ? 'has-extra' : 'no-extra');
+
+  const label = document.createElement('span');
+  label.className = 'week-label';
+  const validDays = weekDays.filter(Boolean);
+  const firstDay = validDays[0], lastDay = validDays[validDays.length - 1];
+  label.textContent = `Wk ${firstDay}\u2013${lastDay}`;
+  row.appendChild(label);
+
+  if (hasExtra) {
+    const chips = document.createElement('div');
+    chips.className = 'week-chips';
+    if (earnings.srmc > 0) {
+      const c = document.createElement('span');
+      c.className = 'week-chip wchip-srmc';
+      c.textContent = `${earnings.srmc}\u00d7 SRMC`;
+      chips.appendChild(c);
+    }
+    if (earnings.mvh > 0) {
+      const c = document.createElement('span');
+      c.className = 'week-chip wchip-mvh';
+      c.textContent = `${earnings.mvh}\u00d7 MVH`;
+      chips.appendChild(c);
+    }
+    if (earnings.jul4 > 0) {
+      const c = document.createElement('span');
+      c.className = 'week-chip wchip-jul4';
+      c.textContent = 'Jul 4 1.5\u00d7';
+      chips.appendChild(c);
+    }
+    row.appendChild(chips);
+
+    const net = document.createElement('span');
+    net.className = 'week-net';
+    net.textContent = `+$${earnings.total.toLocaleString()} net`;
+    row.appendChild(net);
+  } else {
+    const net = document.createElement('span');
+    net.className = 'week-net zero';
+    net.textContent = 'no extra shifts';
+    row.appendChild(net);
+  }
+
+  // Running goal progress
+  const pct = Math.min(100, Math.round((runningTotal / GOAL) * 100));
+  const goalMet = runningTotal >= GOAL;
+  const goalEl = document.createElement('div');
+  goalEl.className = 'week-goal';
+  const barFill = document.createElement('div');
+  barFill.className = 'week-goal-bar-wrap';
+  const fill = document.createElement('div');
+  fill.className = 'week-goal-bar-fill' + (goalMet ? ' goal-met' : '');
+  fill.style.width = pct + '%';
+  barFill.appendChild(fill);
+  const goalLabel = document.createElement('span');
+  goalLabel.className = 'week-goal-label' + (goalMet ? ' goal-met-text' : '');
+  goalLabel.textContent = goalMet
+    ? `Goal met! $${runningTotal.toLocaleString()} / $${GOAL.toLocaleString()}`
+    : `$${runningTotal.toLocaleString()} / $${GOAL.toLocaleString()} (${pct}%)`;
+  goalEl.appendChild(barFill);
+  goalEl.appendChild(goalLabel);
+  row.appendChild(goalEl);
+
+  return row;
+}
+
+function renderMonth(month, runningTotal) {
+  runningTotal = runningTotal || 0;
+  const year = 2026;
+  const data = cal[month] || {};
+  const firstDay    = new Date(year, month-1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  let workC=0, assumedC=0, targetSrmc=0, targetMvh=0, pilatesC=0;
+  Object.values(data).forEach(d => {
+    (d.tags || []).forEach(t => {
+      if (t.status==='work') workC++;
+      else if (t.status==='assumed') assumedC++;
+      else if (t.status==='target-srmc') targetSrmc++;
+      else if (t.status==='target-mvh') targetMvh++;
+      else if (t.status==='pilates') pilatesC++;
+    });
+  });
+
+  const block = document.createElement('div');
+  block.className = 'month-block';
+
+  const header = document.createElement('div');
+  header.className = 'month-header';
+  header.innerHTML = `<div class="month-name">${monthNames[month]} ${year}</div><div class="month-stats">${workC} work · ${assumedC} assumed · ${targetSrmc+targetMvh} targets · ${pilatesC} pilates</div>`;
+  block.appendChild(header);
+
+  const labelsRow = document.createElement('div');
+  labelsRow.className = 'cal-grid';
+  DAY_LABELS.forEach(dl => { const d = document.createElement('div'); d.className='day-label-hdr'; d.textContent=dl; labelsRow.appendChild(d); });
+  block.appendChild(labelsRow);
+
+  const grid = document.createElement('div');
+  grid.className = 'cal-grid';
+
+  // Track current week's days for earnings calculation
+  let currentWeekDays = new Array(firstDay).fill(null); // pad with nulls for empty cells
+
+  for (let i = 0; i < firstDay; i++) {
+    const e = document.createElement('div'); e.className = 'day empty'; grid.appendChild(e);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    grid.appendChild(buildDayCell(month, d, year === TODAY.y && month === TODAY.m && d === TODAY.d));
+    currentWeekDays.push(d);
+
+    const dayOfWeek = new Date(year, month - 1, d).getDay(); // 0=Sun … 6=Sat
+    const isLastDay = d === daysInMonth;
+
+    if (dayOfWeek === 6 || isLastDay) {
+      // End of week row — inject earnings summary
+      const weekEarnings = getWeekEarnings(month, currentWeekDays);
+      runningTotal += weekEarnings.total;
+      grid.appendChild(buildWeekEarningsRow(month, currentWeekDays, runningTotal));
+      currentWeekDays = [];
+    }
+  }
+
+  block.appendChild(grid);
+
+  const bar = document.createElement('div');
+  bar.className = 'summary-bar';
+  bar.innerHTML = `
+    <div class="summary-stat"><span class="summary-num num-work">${workC}</span><span class="summary-label">Work tags</span></div>
+    <div class="summary-stat"><span class="summary-num num-assumed">${assumedC}</span><span class="summary-label">Assumed</span></div>
+    ${targetSrmc ? `<div class="summary-stat"><span class="summary-num num-srmc">${targetSrmc}</span><span class="summary-label">SRMC targets</span></div>` : ''}
+    ${targetMvh  ? `<div class="summary-stat"><span class="summary-num num-mvh">${targetMvh}</span><span class="summary-label">MVH targets</span></div>` : ''}
+    <div class="summary-stat"><span class="summary-num num-pilates">${pilatesC}</span><span class="summary-label">Pilates</span></div>
+  `;
+  block.appendChild(bar);
+  return { block, runningTotal };
+}
+
+function rebuildAll() {
+  const container = document.getElementById('months');
+  container.innerHTML = '';
+  let running = 0;
+  [6,7,8].forEach(m => {
+    const result = renderMonth(m, running);
+    container.appendChild(result.block);
+    running = result.runningTotal;
+  });
+  // Update projected net in header
+  const el = document.getElementById('projectedNet');
+  if (el) {
+    const total = getTotalExtraEarnings();
+    el.textContent = '~$' + total.toLocaleString();
+    el.style.color = total >= GOAL ? '#1A6B1A' : '#3A7A52';
+  }
+}
+
+// ─── Add-tag modal ────────────────────────────────────────────────────────────
+let addTagTarget = null;
+
+function populateStatusSelect() {
+  const sel = document.getElementById('addTagStatus');
+  STATUS_META.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.value;
+    opt.textContent = s.label;
+    sel.appendChild(opt);
+  });
+}
+
+function openAddTagModal(month, day) {
+  addTagTarget = { month, day };
+  document.getElementById('addTagDate').textContent = `${monthNames[month]} ${day}, 2026`;
+  document.getElementById('addTagLabel').value = '';
+  document.getElementById('addTagStatus').value = 'work';
+  document.getElementById('addTagOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('addTagLabel').focus(), 50);
+}
+
+function closeAddTagModal() {
+  document.getElementById('addTagOverlay').classList.remove('visible');
+  addTagTarget = null;
+}
+
+function confirmAddTag() {
+  if (!addTagTarget) return;
+  const { month, day } = addTagTarget;
+  const status = document.getElementById('addTagStatus').value;
+  const meta = STATUS_META.find(s => s.value === status);
+  let label = document.getElementById('addTagLabel').value.trim();
+  if (!label) label = (meta && meta.defaultLabel) || 'Tag';
+
+  if (!cal[month][day]) cal[month][day] = { tags: [] };
+  if (!cal[month][day].tags) cal[month][day].tags = [];
+  const snap = JSON.parse(JSON.stringify(cal[month][day].tags));
+  cal[month][day].tags.push({ status, label });
+  undoStack.push({ type: 'add', month, day, tagsSnap: snap });
+
+  closeAddTagModal();
+  rebuildAll();
+  scheduleSave();
+  showUndo(`Added "${label}" to ${monthNames[month]} ${day}`);
+}
+
+document.getElementById('addTagCancel').addEventListener('click', closeAddTagModal);
+document.getElementById('addTagConfirm').addEventListener('click', confirmAddTag);
+document.getElementById('addTagOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'addTagOverlay') closeAddTagModal();
+});
+document.getElementById('addTagLabel').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmAddTag();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAddTagModal();
+});
+populateStatusSelect();
+
+(async () => {
+  await loadFromCloud();
+  document.getElementById('loadOverlay').style.display = 'none';
+  rebuildAll();
+})();
+</script>
+</body>
+</html>
