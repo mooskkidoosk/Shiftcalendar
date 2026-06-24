@@ -936,6 +936,44 @@ function renderMonth(month, runningTotal) {
   return { block, runningTotal };
 }
 
+function exportData() {
+  const payload = {};
+  [6,7,8,9,10,11,12].forEach(m => {
+    payload[m] = {};
+    Object.keys(cal[m]).forEach(d => {
+      payload[m][d] = { tags: cal[m][d].tags || [] };
+    });
+  });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'shift-cal-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const saved = JSON.parse(e.target.result);
+      applyPayload(saved);
+      // Also save to localStorage and Azure
+      const payloadStr = JSON.stringify(saved);
+      try { localStorage.setItem('shift-cal-2026-full-v1', payloadStr); } catch(e) {}
+      rebuildAll();
+      saveToCloud();
+      alert('Data imported successfully!');
+    } catch(err) {
+      alert('Import failed — make sure you selected a valid backup file.');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be imported again
+  event.target.value = '';
+}
+
 function rebuildAll() {
   const container = document.getElementById('months');
   container.innerHTML = '';
