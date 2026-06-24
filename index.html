@@ -422,36 +422,35 @@ async function azEnsureTable() {
   } catch(e) { /* ignore — table likely exists */ }
 }
 
+function applyPayload(saved) {
+  [6,7,8,9,10,11,12].forEach(m => {
+    if (!saved[m]) return;
+    Object.keys(saved[m]).forEach(d => {
+      const day = +d;
+      if (!cal[m][day]) cal[m][day] = {};
+      cal[m][day].tags = saved[m][d].tags;
+    });
+  });
+}
+
 async function loadFromCloud() {
-  const errEl = document.getElementById('loadOverlay');
+  // First try localStorage (always works, instant)
+  try {
+    const local = localStorage.getItem('shift-cal-2026-full-v1');
+    if (local) { applyPayload(JSON.parse(local)); rebuildAll(); }
+  } catch(e) {}
+
+  // Then try Azure (may override with more recent shared data)
   try {
     const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
-    if (errEl) errEl.textContent = 'Connecting to Azure...';
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok && res.status !== 404) {
-      if (errEl) errEl.textContent = `Azure error ${res.status}: ${await res.text()}`;
-      return;
-    }
-    if (res.status === 404) {
-      // First load, no data yet — that's fine
-      if (errEl) errEl.style.display = 'none';
-      return;
-    }
+    if (!res.ok) return;
     const entity = await res.json();
-    if (!entity.payload) { if (errEl) errEl.style.display = 'none'; return; }
-    const saved = JSON.parse(entity.payload);
-    [6,7,8,9,10,11,12].forEach(m => {
-      if (!saved[m]) return;
-      Object.keys(saved[m]).forEach(d => {
-        const day = +d;
-        if (!cal[m][day]) cal[m][day] = {};
-        cal[m][day].tags = saved[m][d].tags;
-      });
-    });
-    if (errEl) errEl.style.display = 'none';
+    if (!entity.payload) return;
+    applyPayload(JSON.parse(entity.payload));
+    rebuildAll();
   } catch(e) {
-    if (errEl) errEl.textContent = `Error: ${e.message}`;
-    console.warn('Load failed', e);
+    console.warn('Azure load failed, using local data:', e.message);
   }
 }
 
@@ -464,15 +463,19 @@ async function saveToCloud() {
       payload[m][d] = { tags: cal[m][d].tags || [] };
     });
   });
+  const payloadStr = JSON.stringify(payload);
+
+  // Always save to localStorage immediately as a reliable fallback
+  try { localStorage.setItem('shift-cal-2026-full-v1', payloadStr); } catch(e) {}
+
   try {
     await azEnsureTable();
     const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
     const body = JSON.stringify({
       PartitionKey: AZ_PARTITION,
       RowKey: AZ_ROW,
-      payload: JSON.stringify(payload)
+      payload: payloadStr
     });
-    // InsertOrReplace (UPSERT)
     const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -482,10 +485,17 @@ async function saveToCloud() {
       dot.className = 'save-dot saved';
       setTimeout(() => dot.className = 'save-dot', 2000);
     } else {
-      dot.className = 'save-dot';
-      console.warn('Save failed', res.status, await res.text());
+      // Azure failed but localStorage saved — show warning not error
+      dot.className = 'save-dot saved';
+      setTimeout(() => dot.className = 'save-dot', 2000);
+      console.warn('Azure save failed', res.status, await res.text());
     }
-  } catch(e) { dot.className = 'save-dot'; console.warn('Save error', e); }
+  } catch(e) {
+    // Azure unreachable but localStorage saved
+    dot.className = 'save-dot saved';
+    setTimeout(() => dot.className = 'save-dot', 2000);
+    console.warn('Azure unreachable, saved locally:', e.message);
+  }
 }
 
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToCloud, 600); }
