@@ -936,6 +936,24 @@ function renderMonth(month, runningTotal) {
   return { block, runningTotal };
 }
 
+async function testAzure() {
+  const results = [];
+  try {
+    // Test 1: Can we reach Azure at all?
+    const tableUrl = `${AZ_BASE}/${AZ_TABLE}?${AZ_SAS}`;
+    results.push('Testing: ' + tableUrl.substring(0, 60) + '...');
+    const res = await fetch(tableUrl, { 
+      headers: { Accept: 'application/json;odata=nometadata' } 
+    });
+    results.push(`Table query status: ${res.status}`);
+    const text = await res.text();
+    results.push(`Response: ${text.substring(0, 200)}`);
+  } catch(e) {
+    results.push(`CORS/Network error: ${e.message}`);
+  }
+  alert(results.join('\n'));
+}
+
 function exportData() {
   const payload = {};
   [6,7,8,9,10,11,12].forEach(m => {
