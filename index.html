@@ -439,10 +439,10 @@ header .subtitle {
 // ── Azure config ───────────────────────────────────────────────────────────────
 const AZ_ACCOUNT   = 'extrashiftcalendar';
 const AZ_SAS       = 'sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2028-06-25T07:20:37Z&st=2026-06-22T23:05:37Z&spr=https&sig=AACo3NVekLtG3cCf%2BIs3Sn%2FL561TwU%2BbU6CN6jhIhRI%3D';
-const AZ_TABLE     = 'ShiftCalendar';
-const AZ_BASE      = `https://${AZ_ACCOUNT}.table.core.windows.net`;
-const AZ_PARTITION = 'shiftcal';
-const AZ_ROW       = 'v1';
+const AZ_CONTAINER = 'caldata';
+const AZ_BLOB      = 'shiftcal.json';
+const AZ_BASE      = `https://${AZ_ACCOUNT}.blob.core.windows.net`;
+const AZ_URL       = `${AZ_BASE}/${AZ_CONTAINER}/${AZ_BLOB}?${AZ_SAS}`;
 const LS_KEY       = 'shift-cal-2026-v1';
 
 // ── Pay constants ──────────────────────────────────────────────────────────────
@@ -707,15 +707,10 @@ function computeGoals() {
 // ── Azure ──────────────────────────────────────────────────────────────────────
 async function azureLoad() {
   try {
-    const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json;odata=nometadata', 'x-ms-version': '2020-02-10' }
-    });
-    if (res.status === 404) return null; // no data yet, fine
-    if (!res.ok) { console.warn('Azure load HTTP error:', res.status); return null; }
-    const json = await res.json();
-    return json.payload ? JSON.parse(json.payload) : null;
+    const res = await fetch(AZ_URL, { method: 'GET' });
+    if (res.status === 404) return null;
+    if (!res.ok) { console.warn('Azure load error:', res.status); return null; }
+    return await res.json();
   } catch (e) {
     console.warn('Azure load error:', e.message);
     return null;
@@ -724,23 +719,16 @@ async function azureLoad() {
 
 async function azureSave(payload) {
   try {
-    const url = `${AZ_BASE}/${AZ_TABLE}(PartitionKey='${AZ_PARTITION}',RowKey='${AZ_ROW}')?${AZ_SAS}`;
-    const body = JSON.stringify({
-      PartitionKey: AZ_PARTITION,
-      RowKey: AZ_ROW,
-      payload: JSON.stringify(payload)
-    });
-    const res = await fetch(url, {
+    const body = JSON.stringify(payload);
+    const res = await fetch(AZ_URL, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json;odata=nometadata',
-        'If-Match': '*',
-        'x-ms-version': '2020-02-10'
+        'x-ms-blob-type': 'BlockBlob'
       },
       body
     });
-    return res.ok || res.status === 204 || res.status === 201;
+    return res.ok || res.status === 201;
   } catch (e) {
     console.warn('Azure save error:', e.message);
     return false;
