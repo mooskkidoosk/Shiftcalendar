@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Planner — SA & Lesotho 2026 (Personal)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Petrona:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper:#F7F3EC;
+    --tint:#E4D8BE;
+    --ink:#241F1A;
+    --ink-soft: rgba(36,31,26,.74);
+    --ink-faint: rgba(36,31,26,.50);
+    --accent:#3F4A34;
+    --accent2:#A3502E;
+    --line: rgba(36,31,26,.14);
+    --paid:#3F4A34;
+    --owed:#A3502E;
+    --needed:#A3502E;
+    --booked:#8A7A3E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif; font-size:15px; line-height:1.5;
+    padding-bottom:60px;
+  }
+  header{
+    padding:28px 20px 18px; border-bottom:2px solid var(--ink);
+    position:sticky; top:0; background:var(--paper); z-index:10;
+  }
+  h1{
+    font-family:'Petrona', serif; font-weight:700; font-size:1.5rem; margin:0 0 4px;
+    letter-spacing:.01em;
+  }
+  .sub{ color:var(--ink-soft); font-size:.85rem; }
+  nav{ display:flex; gap:6px; margin-top:16px; flex-wrap:wrap; }
+  nav button{
+    font-family:'IBM Plex Sans', sans-serif; font-size:.85rem; font-weight:600;
+    padding:9px 16px; border:1.5px solid var(--ink); background:transparent;
+    color:var(--ink); cursor:pointer; border-radius:3px;
+  }
+  nav button.active{ background:var(--ink); color:var(--paper); }
+  .rate-row{
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+    font-size:.78rem; color:var(--ink-soft); display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .rate-row input{ width:70px; display:inline-block; font-family:'IBM Plex Mono'; font-weight:600; }
+  main{ max-width:1040px; margin:0 auto; padding:24px 20px; }
+  section{ display:none; }
+  section.active{ display:block; }
+
+  h2{ font-family:'Petrona', serif; font-size:1.2rem; margin:0 0 6px; font-weight:600; }
+  .section-note{ color:var(--ink-soft); font-size:.85rem; margin-bottom:18px; }
+
+  table{ width:100%; border-collapse:collapse; margin-bottom:14px; font-size:.88rem; }
+  th{
+    text-align:left; font-family:'IBM Plex Sans'; font-weight:600; font-size:.72rem;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);
+    border-bottom:1.5px solid var(--ink); padding:8px 8px;
+  }
+  td{ border-bottom:1px solid var(--line); padding:7px 8px; vertical-align:top; }
+  tr:last-child td{ border-bottom:1.5px solid var(--ink); }
+
+  input[type=text], input[type=number], select{
+    font-family:'IBM Plex Sans'; font-size:.85rem; color:var(--ink);
+    background:#fff; border:1px solid var(--line); border-radius:3px;
+    padding:5px 7px; width:100%;
+  }
+  input[type=number]{ font-family:'IBM Plex Mono'; }
+  input:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .status-select.Needed{ color:var(--needed); font-weight:600; }
+  .status-select.Booked{ color:var(--booked); font-weight:600; }
+  .status-select.Paid{ color:var(--paid); font-weight:600; }
+
+  .row-actions button{
+    background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:1.1rem;
+    padding:2px 6px;
+  }
+  .row-actions button:hover{ color:var(--accent2); }
+
+  .add-row{
+    font-family:'IBM Plex Sans'; font-size:.8rem; font-weight:600; color:var(--accent);
+    background:none; border:1.5px dashed var(--accent); border-radius:3px;
+    padding:7px 14px; cursor:pointer; margin-top:4px;
+  }
+
+  .totals-bar{
+    display:flex; gap:22px; flex-wrap:wrap; margin:16px 0 22px; padding:14px 16px;
+    background:var(--tint); border-radius:4px;
+  }
+  .stat{ font-family:'IBM Plex Mono'; }
+  .stat .label{ font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); display:block; font-family:'IBM Plex Sans'; font-weight:600; }
+  .stat .value{ font-size:1.15rem; font-weight:600; }
+  .value.owed{ color:var(--owed); }
+  .value.paid{ color:var(--paid); }
+
+  .timetable-day{ margin-bottom:2px; border-bottom:1px solid var(--line); padding:10px 0; display:grid; grid-template-columns:38px 100px 1fr; gap:10px; align-items:baseline; }
+  .timetable-day .idx{ font-family:'Petrona'; font-weight:700; color:var(--accent2); font-size:.95rem; }
+  .timetable-day .date{ font-size:.78rem; color:var(--ink-soft); font-family:'IBM Plex Mono'; }
+  .timetable-day .title{ font-weight:600; }
+  .timetable-day .times{ font-size:.82rem; color:var(--ink-soft); margin-top:2px; }
+  .timetable-day{ align-items:start; }
+  .linked-list{ margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+  .linked-chip{
+    font-size:.72rem; font-family:'IBM Plex Mono'; background:var(--tint); border-radius:3px;
+    padding:3px 8px; display:inline-flex; gap:5px; align-items:baseline;
+  }
+  .linked-chip i{ font-style:normal; color:var(--ink-soft); }
+  .linked-chip.status-Needed i{ color:var(--needed); }
+  .linked-chip.status-Paid i{ color:var(--paid); }
+  .day-actions{ margin-top:8px; }
+  .mini-link-btn{
+    font-size:.72rem; font-weight:600; color:var(--accent); background:none;
+    border:1px dashed var(--accent); border-radius:3px; padding:4px 9px; cursor:pointer;
+  }
+  .mini-link-btn:hover{ background:var(--tint); }
+  .day-note{
+    width:100%; margin-top:8px; font-family:'IBM Plex Sans'; font-size:.82rem; color:var(--ink);
+    background:#fff; border:1px solid var(--line); border-radius:3px; padding:7px 9px;
+    min-height:44px; resize:vertical;
+  }
+  .day-note:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .save-indicator{
+    position:fixed; bottom:16px; right:16px; font-size:.75rem; color:var(--ink-faint);
+    font-family:'IBM Plex Mono'; background:var(--paper); padding:4px 10px; border:1px solid var(--line); border-radius:3px;
+    opacity:0; transition:opacity .3s;
+  }
+  .save-indicator.show{ opacity:1; }
+
+  /* Guest ledger — itemized cards */
+  .guest-card{
+    border:1.5px solid var(--ink); border-radius:5px; margin-bottom:16px; overflow:hidden; background:#fff;
+  }
+  .guest-card-head{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--tint);
+  }
+  .guest-card-head input[type=text]{ font-family:'Petrona'; font-weight:600; font-size:1rem; background:transparent; border:none; padding:2px 4px; }
+  .guest-card-head .guest-summary{ margin-left:auto; display:flex; gap:16px; font-family:'IBM Plex Mono'; font-size:.85rem; white-space:nowrap; }
+  .guest-card-head .row-actions{ margin-left:8px; }
+  .charges-table{ margin:0; }
+  .charges-table th, .charges-table td{ padding:6px 10px; font-size:.82rem; }
+  .charges-table tr:last-child td{ border-bottom:none; }
+  .add-charge{
+    font-size:.75rem; font-weight:600; color:var(--accent); background:none; border:none;
+    cursor:pointer; padding:6px 10px; text-align:left; width:100%;
+  }
+  .add-charge:hover{ text-decoration:underline; }
+
+  @media (max-width:640px){
+    .timetable-day{ grid-template-columns:1fr; }
+    table{ font-size:.8rem; }
+    th, td{ padding:6px 5px; }
+    .guest-card-head{ flex-wrap:wrap; }
+    .guest-card-head .guest-summary{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Trip Planner — South Africa &amp; Lesotho</h1>
+  <div class="sub">Personal working copy · Sept 3–16, 2026 · saves automatically on this device · itinerary sourced from the trip guide (master)</div>
+  <nav>
+    <button data-tab="timetable" class="active">Master Timetable</button>
+    <button data-tab="reservations">Reservations</button>
+    <button data-tab="ledger">Guest Ledger</button>
+    <button data-tab="mycosts">My Costs</button>
+  </nav>
+  <div class="rate-row">
+    <span>Exchange rate — 1 USD =</span>
+    <input type="number" step="0.01" id="rateInput" value="18.5">
+    <span>ZAR (approximate — edit to the current rate; used to combine totals into one pool)</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===================== MASTER TIMETABLE ===================== -->
+  <section id="timetable" class="active">
+    <h2>Master Timetable</h2>
+    <div class="section-note">Itinerary pulled directly from the trip guide (the guide is the master copy) — edit the guide itself if a time changes, not here. Add a note under any day, or link a reservation to it — linked reservations also show up here.</div>
+    <div id="timetableList"></div>
+  </section>
+
+  <!-- ===================== RESERVATIONS ===================== -->
+  <section id="reservations">
+    <h2>Reservations Tracker</h2>
+    <div class="section-note">Status: <b>Needed</b> → still to book · <b>Booked</b> → booked, not yet paid in full · <b>Paid</b> → fully paid / confirmed. Fill in Total and Paid to see the Remaining balance auto-calculate, per row and in the totals bar (split by currency).</div>
+    <div class="totals-bar" id="resTotals"></div>
+    <table>
+      <thead><tr><th style="width:16%">Item</th><th style="width:9%">Date(s)</th><th style="width:8%">Status</th><th style="width:9%">Day</th><th style="width:7%">Currency</th><th style="width:8%">Total</th><th style="width:8%">Paid</th><th style="width:9%">Remaining</th><th>Notes</th><th style="width:30px"></th></tr></thead>
+      <tbody id="resBody"></tbody>
+    </table>
+    <button class="add-row" onclick="addRes()">+ Add reservation</button>
+  </section>
+
+  <!-- ===================== GUEST LEDGER ===================== -->
+  <section id="ledger">
+    <h2>Guest Payment Ledger</h2>
+    <div class="section-note">Itemized per person — each charge is labeled so you know exactly what a payment is for (Maliba, Cape Town Airbnb share, etc.), not just a lump sum.</div>
+    <div class="totals-bar" id="ledgerTotals"></div>
+    <div id="guestCards"></div>
+    <button class="add-row" onclick="addGuest()">+ Add person</button>
+  </section>
+
+  <!-- ===================== MY COSTS ===================== -->
+  <section id="mycosts">
+    <h2>Our Out-of-Pocket Wedding Costs</h2>
+    <div class="section-note">Things you and Ryan are covering directly — separate from the shared trip costs above. Fill in Total and Paid to see the Remaining balance auto-calculate, per row and in the totals bar (split by currency, since some of these are in Rand).</div>
+    <div class="totals-bar" id="myTotals"></div>
+    <table>
+      <thead><tr><th style="width:13%">Category</th><th style="width:20%">Details</th><th style="width:7%">Currency</th><th style="width:9%">Total</th><th style="width:9%">Paid</th><th style="width:10%">Remaining</th><th>Notes</th><th style="width:30px"></th></tr></thead>
+      <tbody id="myBody"></tbody>
+    </table>
+    <button class="add-row" onclick="addMyCost()">+ Add cost</button>
+  </section>
+
+</main>
+
+<div class="save-indicator" id="saveIndicator">Saved</div>
+
+<script>
+const STORAGE_KEY = "saLesothoPlanner_v6";
+
+// ---------- Seed data (itinerary sourced from the trip guide — the master copy) ----------
+const TIMETABLE = [
+  {idx:"01", date:"Thu Sep 3",  title:"Depart Atlanta", times:"Delta DL0200 · 10:10 PM departure"},
+  {idx:"02", date:"Fri Sep 4",  title:"Arrive Johannesburg", times:"~7:40 PM local (arrives next calendar day) · City Lodge Hotel, OR Tambo"},
+  {idx:"03", date:"Sat Sep 5",  title:"Kruger via Panorama Route", times:"Scenic drive — God's Window, Bourke's Luck Potholes · Evening: Day 1 safari, sunset drive, Moditlo Private Reserve · Staying at Safari Moon Luxury Bush Lodge"},
+  {idx:"04", date:"Sun Sep 6",  title:"Safari — Kruger", times:"Day 2 of safari: full-day Kruger safari via Orpen Gate · Safari Moon Luxury Bush Lodge"},
+  {idx:"05", date:"Mon Sep 7",  title:"Kruger to Lesotho", times:"AM: Day 3 safari, sunrise drive · Charter Hoedspruit 12:10p → JNB 1:10p · Flight 5Z0108 JNB 3:30p → Bloemfontein 4:30p · drive to Maseru, check in Mpilo Boutique Hotel (Mon–Thu nights, checkout Fri morning)"},
+  {idx:"06", date:"Tue Sep 8",  title:"Thaba Bosiu & Family Welcome Braai", times:"Hike & summit picnic · Evening Mass (~4pm), followed by Family Welcome Braai"},
+  {idx:"07", date:"Wed Sep 9",  title:"Maseru Tour w/ Lineo", times:"Shopping · Golf? (possible)"},
+  {idx:"08", date:"Thu Sep 10", title:"Final fittings", times:"Pony trekking? (possible) · Night out — lounge chic vibes, not a club"},
+  {idx:"09", date:"Fri Sep 11", title:"Kome Caves → Maliba Lodge", times:"Cliff dwellings, then travel to Maliba · Welcome braai"},
+  {idx:"10", date:"Sat Sep 12", title:"Wedding Celebration", times:"Maliba Lodge · Reservation #22988"},
+  {idx:"11", date:"Sun Sep 13", title:"Camps Bay & Café Caprice", times:"Drive Maseru → Bloemfontein · FA-843 BFN 3:00p → CPT 4:45p (individual booking) · check in 23 Geneva Drive, Camps Bay"},
+  {idx:"12", date:"Mon Sep 14", title:"Cape Peninsula", times:"Cape of Good Hope, Boulders Beach · Gold Restaurant · Peak whale season along this coastline — bring binoculars"},
+  {idx:"13", date:"Tue Sep 15", title:"Cape Winelands", times:"Option A (direct) vs Option B (Watershed stop) — undecided"},
+  {idx:"14", date:"Wed Sep 16", title:"Table Mountain", times:"Morning cableway/hike · Staggered departures — return flights TBD"},
+];
+
+const DEFAULT_RESERVATIONS = [
+  {item:"International flights (individual)", date:"Sep 3–16", status:"Booked", currency:"USD", total:"", paid:"", notes:"Everyone self-booked, varies per person — confirm each guest has theirs on file", linkedDay:"01"},
+  {item:"City Lodge Hotel, OR Tambo (JNB)", date:"Sep 4–5", status:"Booked", currency:"USD", total:"", paid:"", notes:"Individually booked by each guest", linkedDay:"02"},
+  {item:"Kruger safari package (MoAfrika Tours)", date:"Sep 5–7", status:"Paid", currency:"USD", total:"", paid:"", notes:"Includes transport, meals, Safari Moon Lodge, 3-day safari — already paid in full", linkedDay:"03"},
+  {item:"Charter flight — Hoedspruit → JNB", date:"Sep 7", status:"Paid", currency:"USD", total:"", paid:"", notes:"Included in safari package", linkedDay:"05"},
+  {item:"Flight 5Z0108 — JNB → Bloemfontein", date:"Sep 7", status:"Booked", currency:"USD", total:"", paid:"", notes:"Individually booked, ~$100–122pp — confirm on file", linkedDay:"05"},
+  {item:"Mpilo Boutique Hotel, Maseru", date:"Sep 7–11 (Mon–Thu nights, checkout Fri AM)", status:"Needed", currency:"USD", total:"", paid:"", notes:"Confirm reservation for 4 nights", linkedDay:"05"},
+  {item:"Maliba Lodge — Reservation #22988", date:"Sep 11–13", status:"Paid", currency:"USD", total:"", paid:"", notes:"$175pp × 42 adults — collected per-person, see Guest Ledger", linkedDay:"09"},
+  {item:"Flight FA-843 — Bloemfontein → Cape Town", date:"Sep 13", status:"Needed", currency:"USD", total:"", paid:"", notes:"Individual booking — confirm each guest has this", linkedDay:"11"},
+  {item:"Airbnb — 23 Geneva Drive, Camps Bay", date:"Sep 13–16", status:"Booked", currency:"USD", total:363.13, paid:188.13, notes:"Deposit paid — balance due before check-in", linkedDay:"11"},
+  {item:"Return flights home", date:"Sep 16", status:"Needed", currency:"USD", total:"", paid:"", notes:"Staggered departure times — not yet captured", linkedDay:"14"},
+  {item:"Thaba Bosiu guide", date:"Sep 8", status:"Needed", currency:"USD", total:"", paid:"", notes:"Arrangement unconfirmed", linkedDay:"06"},
+];
+
+// Each guest carries an itemized list of charges instead of one lump "owed" figure.
+const DEFAULT_GUESTS = [
+  "Neo","Ryan","Steve","Mary-Alice","Cathy","Deanna","Lisa","Bill","Nathan","Kieren",
+  "Emily","Olivia","Luke","Shay","Ali","Josh","Ross McGregor","Julie Broghamer","Mum & Dad"
+].map(name => ({
+  name,
+  charges:[
+    {label:"Maliba Lodge (Sept 11–13)", currency:"USD", amount:175, paid:false}
+  ]
+}));
+
+const DEFAULT_MYCOSTS = [
+  {cat:"Car rental", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Live music / band", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Photography (our share)", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Wedding gift", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Decorator", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Open bar tab", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Parents — Cape Town transport", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Parents — Cape Town Airbnb share", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Parents — Cape Town dinner", details:"", currency:"USD", total:"", paid:"", notes:""},
+  {cat:"Friday night dinner (Lesotho)", details:"From budget notes — R440pp × ~21", currency:"ZAR", total:9240, paid:"", notes:""},
+  {cat:"Saturday conference package", details:"From budget notes — R550pp", currency:"ZAR", total:5000, paid:"", notes:""},
+  {cat:"Event — additional 80 guests", details:"From budget notes — R315pp", currency:"ZAR", total:12000, paid:"", notes:""},
+  {cat:"DJ", details:"", currency:"ZAR", total:"", paid:"", notes:""},
+  {cat:"MC", details:"", currency:"ZAR", total:"", paid:"", notes:""},
+];
+
+// ---------- State ----------
+let state = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(!parsed.exchangeRate) parsed.exchangeRate = 18.5;
+      if(!parsed.dayNotes) parsed.dayNotes = {};
+      parsed.reservations.forEach(r => { if(r.linkedDay === undefined) r.linkedDay = ""; });
+      return parsed;
+    }
+  }catch(e){}
+  return {
+    reservations: JSON.parse(JSON.stringify(DEFAULT_RESERVATIONS)),
+    guests: JSON.parse(JSON.stringify(DEFAULT_GUESTS)),
+    myCosts: JSON.parse(JSON.stringify(DEFAULT_MYCOSTS)),
+    exchangeRate: 18.5, // ZAR per 1 USD — approximate, edit to the current rate
+    dayNotes: {}, // keyed by day idx ("01".."14") — free-text notes per day
+  };
+}
+
+function save(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const ind = document.getElementById('saveIndicator');
+    ind.classList.add('show');
+    clearTimeout(window._saveTimeout);
+    window._saveTimeout = setTimeout(()=>ind.classList.remove('show'), 1200);
+  }catch(e){ console.error('Save failed', e); }
+}
+
+// ---------- Tabs ----------
+function switchTab(tabName){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tabName));
+  document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active', s.id===tabName));
+}
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+});
+
+// ---------- Timetable render (static, sourced from the guide) ----------
+function renderTimetable(){
+  const el = document.getElementById('timetableList');
+  el.innerHTML = TIMETABLE.map(d => {
+    const linked = state.reservations.filter(r => r.linkedDay === d.idx);
+    const linkedHtml = linked.map(r => {
+      const total = parseFloat(r.total)||0;
+      const paidAmt = parseFloat(r.paid)||0;
+      const remaining = total - paidAmt;
+      const balanceText = total ? ` — ${remaining>0 ? remaining.toFixed(2)+' '+r.currency+' due' : 'paid in full'}` : '';
+      return `<span class="linked-chip status-${r.status}">${escAttr(r.item)||'(untitled)'} <i>${r.status}${balanceText}</i></span>`;
+    }).join('');
+    return `
+    <div class="timetable-day">
+      <div class="idx">${d.idx}</div>
+      <div class="date">${d.date}</div>
+      <div>
+        <div class="title">${d.title}</div>
+        <div class="times">${d.times}</div>
+        ${linked.length ? `<div class="linked-list">${linkedHtml}</div>` : ''}
+        <div class="day-actions">
+          <button class="mini-link-btn" onclick="addLinkedReservation('${d.idx}','${escAttr(d.date)}')">+ Link a reservation</button>
+        </div>
+        <textarea class="day-note" placeholder="Notes for this day…" oninput="state.dayNotes['${d.idx}']=this.value; save()">${escAttr(state.dayNotes[d.idx]||'')}</textarea>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function addLinkedReservation(dayIdx, dayDate){
+  state.reservations.push({item:"", date:dayDate, status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:dayIdx});
+  save();
+  renderReservations();
+  renderTimetable();
+  switchTab('reservations');
+  setTimeout(()=>{
+    const rows = document.querySelectorAll('#resBody tr');
+    const lastRow = rows[rows.length-1];
+    if(lastRow) lastRow.querySelector('input[type=text]').focus();
+  }, 50);
+}
+
+// ---------- Reservations ----------
+function renderReservations(){
+  const body = document.getElementById('resBody');
+  body.innerHTML = state.reservations.map((r, i) => {
+    const total = parseFloat(r.total)||0;
+    const paidAmt = parseFloat(r.paid)||0;
+    const remaining = total - paidAmt;
+    const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+    return `
+    <tr>
+      <td><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save()"></td>
+      <td><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
+      <td>
+        <select class="status-select ${r.status}" onchange="state.reservations[${i}].status=this.value; save(); renderReservations();">
+          <option ${r.status==='Needed'?'selected':''}>Needed</option>
+          <option ${r.status==='Booked'?'selected':''}>Booked</option>
+          <option ${r.status==='Paid'?'selected':''}>Paid</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="state.reservations[${i}].linkedDay=this.value; save(); renderReservations(); renderTimetable();">
+          <option value="" ${!r.linkedDay?'selected':''}>—</option>
+          ${TIMETABLE.map(d=>`<option value="${d.idx}" ${r.linkedDay===d.idx?'selected':''}>Day ${d.idx} — ${escAttr(d.title)}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <select onchange="state.reservations[${i}].currency=this.value; save(); renderReservations();">
+          <option ${r.currency==='USD'?'selected':''}>USD</option>
+          <option ${r.currency==='ZAR'?'selected':''}>ZAR</option>
+        </select>
+      </td>
+      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); renderReservations();"></td>
+      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); renderReservations();"></td>
+      <td>${remainingDisplay}</td>
+      <td><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
+      <td class="row-actions"><button onclick="removeRes(${i})" title="Remove">×</button></td>
+    </tr>
+  `;
+  }).join('');
+  const needed = state.reservations.filter(r=>r.status==='Needed').length;
+  const booked = state.reservations.filter(r=>r.status==='Booked').length;
+  const paidCount = state.reservations.filter(r=>r.status==='Paid').length;
+
+  const byCurrency = {};
+  state.reservations.forEach(r => {
+    const cur = r.currency || 'USD';
+    const total = parseFloat(r.total)||0;
+    const paidAmt = parseFloat(r.paid)||0;
+    if(!total) return; // skip rows with no known total — nothing to add up
+    byCurrency[cur] = byCurrency[cur] || {total:0, paid:0};
+    byCurrency[cur].total += total;
+    byCurrency[cur].paid += paidAmt;
+  });
+  const currencyStats = Object.keys(byCurrency).map(cur => `
+    <div class="stat"><span class="label">— of which ${cur}</span><span class="value owed">${(byCurrency[cur].total-byCurrency[cur].paid).toFixed(2)}</span></div>
+  `).join('');
+  const pooled = pooledTotals(byCurrency);
+
+  document.getElementById('resTotals').innerHTML = `
+    <div class="stat"><span class="label">Needed</span><span class="value owed">${needed}</span></div>
+    <div class="stat"><span class="label">Booked</span><span class="value">${booked}</span></div>
+    <div class="stat"><span class="label">Paid / Confirmed</span><span class="value paid">${paidCount}</span></div>
+    <div class="stat"><span class="label">Combined Remaining (USD)</span><span class="value owed">$${pooled.remaining.toFixed(2)}</span></div>
+    ${currencyStats}
+  `;
+}
+function addRes(){ state.reservations.push({item:"", date:"", status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:""}); save(); renderReservations(); renderTimetable(); }
+function removeRes(i){ state.reservations.splice(i,1); save(); renderReservations(); renderTimetable(); }
+
+// ---------- Guest ledger — itemized cards ----------
+function renderLedger(){
+  const wrap = document.getElementById('guestCards');
+  wrap.innerHTML = state.guests.map((g, gi) => {
+    const totalOwed = g.charges.reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+    const totalPaid = g.charges.filter(c=>c.paid).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+    const currencies = [...new Set(g.charges.map(c=>c.currency))];
+    const chargeRows = g.charges.map((c, ci) => `
+      <tr>
+        <td><input type="text" value="${escAttr(c.label)}" title="${escAttr(c.label)}" placeholder="What is this charge for?" oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
+        <td style="width:80px">
+          <select onchange="state.guests[${gi}].charges[${ci}].currency=this.value; save(); renderLedger();">
+            <option ${c.currency==='USD'?'selected':''}>USD</option>
+            <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
+          </select>
+        </td>
+        <td style="width:100px"><input type="number" value="${c.amount}" oninput="state.guests[${gi}].charges[${ci}].amount=this.value; save(); renderLedger();"></td>
+        <td style="width:70px; text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="state.guests[${gi}].charges[${ci}].paid=this.checked; save(); renderLedger();" style="width:17px;height:17px;"></td>
+        <td class="row-actions" style="width:30px"><button onclick="removeCharge(${gi},${ci})" title="Remove charge">×</button></td>
+      </tr>
+    `).join('');
+    const owedByCurrency = currencies.map(cur=>{
+      const sub = g.charges.filter(c=>c.currency===cur).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+      return sub.toFixed(0)+' '+cur;
+    }).join(' + ') || '0';
+    return `
+      <div class="guest-card">
+        <div class="guest-card-head">
+          <input type="text" value="${escAttr(g.name)}" oninput="state.guests[${gi}].name=this.value; save()">
+          <div class="guest-summary">
+            <span>Owed: <b>${owedByCurrency}</b></span>
+            <span style="color:${totalOwed-totalPaid>0?'var(--owed)':'var(--paid)'}">Balance: <b>${(totalOwed-totalPaid).toFixed(2)}</b></span>
+          </div>
+          <div class="row-actions"><button onclick="removeGuest(${gi})" title="Remove person">×</button></div>
+        </div>
+        <table class="charges-table">
+          <thead><tr><th>Charge</th><th>Currency</th><th>Amount</th><th>Paid?</th><th></th></tr></thead>
+          <tbody>${chargeRows}</tbody>
+        </table>
+        <button class="add-charge" onclick="addCharge(${gi})">+ Add charge for ${escAttr(g.name)||'this person'}</button>
+      </div>
+    `;
+  }).join('');
+
+  // Grand totals, split by currency
+  const byCurrency = {};
+  state.guests.forEach(g => g.charges.forEach(c => {
+    const cur = c.currency || 'USD';
+    byCurrency[cur] = byCurrency[cur] || {owed:0, paid:0};
+    const amt = parseFloat(c.amount)||0;
+    byCurrency[cur].owed += amt;
+    if(c.paid) byCurrency[cur].paid += amt;
+  }));
+  const statHtml = Object.keys(byCurrency).map(cur => `
+    <div class="stat"><span class="label">Owed (${cur})</span><span class="value">${byCurrency[cur].owed.toFixed(2)}</span></div>
+    <div class="stat"><span class="label">Collected (${cur})</span><span class="value paid">${byCurrency[cur].paid.toFixed(2)}</span></div>
+    <div class="stat"><span class="label">Outstanding (${cur})</span><span class="value owed">${(byCurrency[cur].owed-byCurrency[cur].paid).toFixed(2)}</span></div>
+  `).join('');
+  document.getElementById('ledgerTotals').innerHTML = statHtml || '<div class="stat"><span class="label">No charges yet</span></div>';
+}
+function addGuest(){ state.guests.push({name:"", charges:[{label:"", currency:"USD", amount:"", paid:false}]}); save(); renderLedger(); }
+function removeGuest(i){ state.guests.splice(i,1); save(); renderLedger(); }
+function addCharge(gi){ state.guests[gi].charges.push({label:"", currency:"USD", amount:"", paid:false}); save(); renderLedger(); }
+function removeCharge(gi,ci){ state.guests[gi].charges.splice(ci,1); save(); renderLedger(); }
+
+// ---------- My costs ----------
+function renderMyCosts(){
+  const body = document.getElementById('myBody');
+  body.innerHTML = state.myCosts.map((c, i) => {
+    const total = parseFloat(c.total)||0;
+    const paidAmt = parseFloat(c.paid)||0;
+    const remaining = total - paidAmt;
+    const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+    return `
+    <tr>
+      <td><input type="text" value="${escAttr(c.cat)}" oninput="state.myCosts[${i}].cat=this.value; save()"></td>
+      <td><input type="text" value="${escAttr(c.details)}" title="${escAttr(c.details)}" oninput="state.myCosts[${i}].details=this.value; this.title=this.value; save()"></td>
+      <td>
+        <select onchange="state.myCosts[${i}].currency=this.value; save(); renderMyCosts();">
+          <option ${c.currency==='USD'?'selected':''}>USD</option>
+          <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
+        </select>
+      </td>
+      <td><input type="number" value="${c.total}" placeholder="—" oninput="state.myCosts[${i}].total=this.value; save(); renderMyCosts();"></td>
+      <td><input type="number" value="${c.paid}" placeholder="—" oninput="state.myCosts[${i}].paid=this.value; save(); renderMyCosts();"></td>
+      <td>${remainingDisplay}</td>
+      <td><input type="text" value="${escAttr(c.notes)}" title="${escAttr(c.notes)}" oninput="state.myCosts[${i}].notes=this.value; this.title=this.value; save()"></td>
+      <td class="row-actions"><button onclick="removeMyCost(${i})" title="Remove">×</button></td>
+    </tr>
+  `;
+  }).join('');
+  const byCurrency = {};
+  state.myCosts.forEach(c => {
+    const cur = c.currency || 'USD';
+    const total = parseFloat(c.total)||0;
+    const paidAmt = parseFloat(c.paid)||0;
+    if(!total) return; // skip rows with no known total
+    byCurrency[cur] = byCurrency[cur] || {total:0, paid:0};
+    byCurrency[cur].total += total;
+    byCurrency[cur].paid += paidAmt;
+  });
+  const pooled = pooledTotals(byCurrency);
+  const currencyStats = Object.keys(byCurrency).map(cur => `
+    <div class="stat"><span class="label">— of which ${cur} total</span><span class="value">${byCurrency[cur].total.toFixed(2)}</span></div>
+    <div class="stat"><span class="label">— of which ${cur} paid</span><span class="value paid">${byCurrency[cur].paid.toFixed(2)}</span></div>
+  `).join('');
+  document.getElementById('myTotals').innerHTML = `
+    <div class="stat"><span class="label">Combined Total (USD)</span><span class="value">$${pooled.total.toFixed(2)}</span></div>
+    <div class="stat"><span class="label">Combined Paid (USD)</span><span class="value paid">$${pooled.paid.toFixed(2)}</span></div>
+    <div class="stat"><span class="label">Combined Remaining (USD)</span><span class="value owed">$${pooled.remaining.toFixed(2)}</span></div>
+    ${currencyStats}
+  ` || '';
+}
+function addMyCost(){ state.myCosts.push({cat:"", details:"", currency:"USD", total:"", paid:"", notes:""}); save(); renderMyCosts(); }
+function removeMyCost(i){ state.myCosts.splice(i,1); save(); renderMyCosts(); }
+
+function escAttr(s){
+  return String(s ?? "").replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// Converts a {USD:{total,paid}, ZAR:{total,paid}} map into one pooled USD figure,
+// using the shared exchange rate. Everything counts toward the same pool regardless of currency.
+function pooledTotals(byCurrency){
+  const rate = parseFloat(state.exchangeRate) || 18.5;
+  let total = 0, paid = 0;
+  Object.keys(byCurrency).forEach(cur => {
+    const mult = cur === 'ZAR' ? (1/rate) : 1;
+    total += byCurrency[cur].total * mult;
+    paid  += byCurrency[cur].paid  * mult;
+  });
+  return { total, paid, remaining: total - paid };
+}
+
+// ---------- Init ----------
+renderTimetable();
+renderReservations();
+renderLedger();
+renderMyCosts();
+
+const rateInput = document.getElementById('rateInput');
+rateInput.value = state.exchangeRate;
+rateInput.addEventListener('input', () => {
+  state.exchangeRate = rateInput.value;
+  save();
+  renderReservations();
+  renderMyCosts();
+});
+</script>
+
+</body>
+</html>
