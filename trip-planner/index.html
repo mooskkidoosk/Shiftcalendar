@@ -55,7 +55,8 @@
   h2{ font-family:'Petrona', serif; font-size:1.2rem; margin:0 0 6px; font-weight:600; }
   .section-note{ color:var(--ink-soft); font-size:.85rem; margin-bottom:18px; }
 
-  table{ width:100%; border-collapse:collapse; margin-bottom:14px; font-size:.88rem; }
+  .table-scroll{ overflow-x:auto; margin-bottom:14px; }
+  table{ width:100%; min-width:900px; border-collapse:collapse; margin-bottom:0; font-size:.88rem; }
   th{
     text-align:left; font-family:'IBM Plex Sans'; font-weight:600; font-size:.72rem;
     text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);
@@ -67,9 +68,13 @@
   input[type=text], input[type=number], select{
     font-family:'IBM Plex Sans'; font-size:.85rem; color:var(--ink);
     background:#fff; border:1px solid var(--line); border-radius:3px;
-    padding:5px 7px; width:100%;
+    padding:5px 7px; width:100%; min-width:90px;
   }
   input[type=number]{ font-family:'IBM Plex Mono'; }
+  /* Remove spinner arrows — they get in the way when typing amounts */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
   input:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; }
 
   .status-select.Needed{ color:var(--needed); font-weight:600; }
@@ -192,10 +197,12 @@
     <h2>Reservations Tracker</h2>
     <div class="section-note">Status: <b>Needed</b> → still to book · <b>Booked</b> → booked, not yet paid in full · <b>Paid</b> → fully paid / confirmed. Fill in Total and Paid to see the Remaining balance auto-calculate, per row and in the totals bar (split by currency).</div>
     <div class="totals-bar" id="resTotals"></div>
+    <div class="table-scroll">
     <table>
       <thead><tr><th style="width:16%">Item</th><th style="width:9%">Date(s)</th><th style="width:8%">Status</th><th style="width:9%">Day</th><th style="width:7%">Currency</th><th style="width:8%">Total</th><th style="width:8%">Paid</th><th style="width:9%">Remaining</th><th>Notes</th><th style="width:30px"></th></tr></thead>
       <tbody id="resBody"></tbody>
     </table>
+    </div>
     <button class="add-row" onclick="addRes()">+ Add reservation</button>
   </section>
 
@@ -213,10 +220,12 @@
     <h2>Our Out-of-Pocket Wedding Costs</h2>
     <div class="section-note">Things you and Ryan are covering directly — separate from the shared trip costs above. Fill in Total and Paid to see the Remaining balance auto-calculate, per row and in the totals bar (split by currency, since some of these are in Rand).</div>
     <div class="totals-bar" id="myTotals"></div>
+    <div class="table-scroll">
     <table>
       <thead><tr><th style="width:13%">Category</th><th style="width:20%">Details</th><th style="width:7%">Currency</th><th style="width:9%">Total</th><th style="width:9%">Paid</th><th style="width:10%">Remaining</th><th>Notes</th><th style="width:30px"></th></tr></thead>
       <tbody id="myBody"></tbody>
     </table>
+    </div>
     <button class="add-row" onclick="addMyCost()">+ Add cost</button>
   </section>
 
@@ -382,10 +391,10 @@ function renderReservations(){
     const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
     return `
     <tr>
-      <td><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save()"></td>
+      <td><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable();"></td>
       <td><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
       <td>
-        <select class="status-select ${r.status}" onchange="state.reservations[${i}].status=this.value; save(); renderReservations();">
+        <select class="status-select ${r.status}" onchange="state.reservations[${i}].status=this.value; save(); renderReservations(); renderTimetable();">
           <option ${r.status==='Needed'?'selected':''}>Needed</option>
           <option ${r.status==='Booked'?'selected':''}>Booked</option>
           <option ${r.status==='Paid'?'selected':''}>Paid</option>
@@ -403,8 +412,8 @@ function renderReservations(){
           <option ${r.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
       </td>
-      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); renderReservations();"></td>
-      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); renderReservations();"></td>
+      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); renderReservations(); renderTimetable();"></td>
+      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); renderReservations(); renderTimetable();"></td>
       <td>${remainingDisplay}</td>
       <td><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
       <td class="row-actions"><button onclick="removeRes(${i})" title="Remove">×</button></td>
