@@ -382,14 +382,12 @@ function addLinkedReservation(dayIdx, dayDate){
 }
 
 // ---------- Reservations ----------
-function renderReservations(){
-  const body = document.getElementById('resBody');
-  body.innerHTML = state.reservations.map((r, i) => {
-    const total = parseFloat(r.total)||0;
-    const paidAmt = parseFloat(r.paid)||0;
-    const remaining = total - paidAmt;
-    const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
-    return `
+function resRowHtml(r, i){
+  const total = parseFloat(r.total)||0;
+  const paidAmt = parseFloat(r.paid)||0;
+  const remaining = total - paidAmt;
+  const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+  return `
     <tr>
       <td><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable();"></td>
       <td><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
@@ -412,14 +410,35 @@ function renderReservations(){
           <option ${r.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
       </td>
-      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); renderReservations(); renderTimetable();"></td>
-      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); renderReservations(); renderTimetable();"></td>
-      <td>${remainingDisplay}</td>
+      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); refreshResRow(${i});"></td>
+      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); refreshResRow(${i});"></td>
+      <td id="resRem${i}">${remainingDisplay}</td>
       <td><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
       <td class="row-actions"><button onclick="removeRes(${i})" title="Remove">×</button></td>
     </tr>
   `;
-  }).join('');
+}
+
+function renderReservations(){
+  const body = document.getElementById('resBody');
+  body.innerHTML = state.reservations.map((r, i) => resRowHtml(r, i)).join('');
+  updateResTotals();
+}
+
+// Called while typing in Total/Paid — updates just this row's Remaining cell and the totals bar,
+// without rebuilding the table (which would destroy the input you're typing in).
+function refreshResRow(i){
+  const r = state.reservations[i];
+  const total = parseFloat(r.total)||0;
+  const paidAmt = parseFloat(r.paid)||0;
+  const remaining = total - paidAmt;
+  const cell = document.getElementById('resRem'+i);
+  if(cell) cell.innerHTML = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+  updateResTotals();
+  renderTimetable(); // safe — different DOM subtree, doesn't affect the input being typed in
+}
+
+function updateResTotals(){
   const needed = state.reservations.filter(r=>r.status==='Needed').length;
   const booked = state.reservations.filter(r=>r.status==='Booked').length;
   const paidCount = state.reservations.filter(r=>r.status==='Paid').length;
@@ -451,13 +470,11 @@ function addRes(){ state.reservations.push({item:"", date:"", status:"Needed", c
 function removeRes(i){ state.reservations.splice(i,1); save(); renderReservations(); renderTimetable(); }
 
 // ---------- Guest ledger — itemized cards ----------
-function renderLedger(){
-  const wrap = document.getElementById('guestCards');
-  wrap.innerHTML = state.guests.map((g, gi) => {
-    const totalOwed = g.charges.reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
-    const totalPaid = g.charges.filter(c=>c.paid).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
-    const currencies = [...new Set(g.charges.map(c=>c.currency))];
-    const chargeRows = g.charges.map((c, ci) => `
+function guestCardHtml(g, gi){
+  const totalOwed = g.charges.reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+  const totalPaid = g.charges.filter(c=>c.paid).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+  const currencies = [...new Set(g.charges.map(c=>c.currency))];
+  const chargeRows = g.charges.map((c, ci) => `
       <tr>
         <td><input type="text" value="${escAttr(c.label)}" title="${escAttr(c.label)}" placeholder="What is this charge for?" oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
         <td style="width:80px">
@@ -466,22 +483,22 @@ function renderLedger(){
             <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
           </select>
         </td>
-        <td style="width:100px"><input type="number" value="${c.amount}" oninput="state.guests[${gi}].charges[${ci}].amount=this.value; save(); renderLedger();"></td>
-        <td style="width:70px; text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="state.guests[${gi}].charges[${ci}].paid=this.checked; save(); renderLedger();" style="width:17px;height:17px;"></td>
+        <td style="width:100px"><input type="number" value="${c.amount}" oninput="state.guests[${gi}].charges[${ci}].amount=this.value; save(); refreshGuestRow(${gi});"></td>
+        <td style="width:70px; text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="state.guests[${gi}].charges[${ci}].paid=this.checked; save(); refreshGuestRow(${gi});" style="width:17px;height:17px;"></td>
         <td class="row-actions" style="width:30px"><button onclick="removeCharge(${gi},${ci})" title="Remove charge">×</button></td>
       </tr>
     `).join('');
-    const owedByCurrency = currencies.map(cur=>{
-      const sub = g.charges.filter(c=>c.currency===cur).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
-      return sub.toFixed(0)+' '+cur;
-    }).join(' + ') || '0';
-    return `
+  const owedByCurrency = currencies.map(cur=>{
+    const sub = g.charges.filter(c=>c.currency===cur).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+    return sub.toFixed(0)+' '+cur;
+  }).join(' + ') || '0';
+  return `
       <div class="guest-card">
         <div class="guest-card-head">
           <input type="text" value="${escAttr(g.name)}" oninput="state.guests[${gi}].name=this.value; save()">
           <div class="guest-summary">
-            <span>Owed: <b>${owedByCurrency}</b></span>
-            <span style="color:${totalOwed-totalPaid>0?'var(--owed)':'var(--paid)'}">Balance: <b>${(totalOwed-totalPaid).toFixed(2)}</b></span>
+            <span id="guestOwed${gi}">Owed: <b>${owedByCurrency}</b></span>
+            <span id="guestBalance${gi}" style="color:${totalOwed-totalPaid>0?'var(--owed)':'var(--paid)'}">Balance: <b>${(totalOwed-totalPaid).toFixed(2)}</b></span>
           </div>
           <div class="row-actions"><button onclick="removeGuest(${gi})" title="Remove person">×</button></div>
         </div>
@@ -492,9 +509,36 @@ function renderLedger(){
         <button class="add-charge" onclick="addCharge(${gi})">+ Add charge for ${escAttr(g.name)||'this person'}</button>
       </div>
     `;
-  }).join('');
+}
 
-  // Grand totals, split by currency
+function renderLedger(){
+  const wrap = document.getElementById('guestCards');
+  wrap.innerHTML = state.guests.map((g, gi) => guestCardHtml(g, gi)).join('');
+  updateLedgerTotals();
+}
+
+// Called while typing an amount or toggling paid — updates just this guest's summary line
+// and the grand totals, without rebuilding every card (which would destroy the input you're typing in).
+function refreshGuestRow(gi){
+  const g = state.guests[gi];
+  const totalOwed = g.charges.reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+  const totalPaid = g.charges.filter(c=>c.paid).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+  const currencies = [...new Set(g.charges.map(c=>c.currency))];
+  const owedByCurrency = currencies.map(cur=>{
+    const sub = g.charges.filter(c=>c.currency===cur).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
+    return sub.toFixed(0)+' '+cur;
+  }).join(' + ') || '0';
+  const owedEl = document.getElementById('guestOwed'+gi);
+  const balEl = document.getElementById('guestBalance'+gi);
+  if(owedEl) owedEl.innerHTML = `Owed: <b>${owedByCurrency}</b>`;
+  if(balEl){
+    balEl.innerHTML = `Balance: <b>${(totalOwed-totalPaid).toFixed(2)}</b>`;
+    balEl.style.color = (totalOwed-totalPaid)>0 ? 'var(--owed)' : 'var(--paid)';
+  }
+  updateLedgerTotals();
+}
+
+function updateLedgerTotals(){
   const byCurrency = {};
   state.guests.forEach(g => g.charges.forEach(c => {
     const cur = c.currency || 'USD';
@@ -516,14 +560,12 @@ function addCharge(gi){ state.guests[gi].charges.push({label:"", currency:"USD",
 function removeCharge(gi,ci){ state.guests[gi].charges.splice(ci,1); save(); renderLedger(); }
 
 // ---------- My costs ----------
-function renderMyCosts(){
-  const body = document.getElementById('myBody');
-  body.innerHTML = state.myCosts.map((c, i) => {
-    const total = parseFloat(c.total)||0;
-    const paidAmt = parseFloat(c.paid)||0;
-    const remaining = total - paidAmt;
-    const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
-    return `
+function myCostRowHtml(c, i){
+  const total = parseFloat(c.total)||0;
+  const paidAmt = parseFloat(c.paid)||0;
+  const remaining = total - paidAmt;
+  const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+  return `
     <tr>
       <td><input type="text" value="${escAttr(c.cat)}" oninput="state.myCosts[${i}].cat=this.value; save()"></td>
       <td><input type="text" value="${escAttr(c.details)}" title="${escAttr(c.details)}" oninput="state.myCosts[${i}].details=this.value; this.title=this.value; save()"></td>
@@ -533,14 +575,34 @@ function renderMyCosts(){
           <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
       </td>
-      <td><input type="number" value="${c.total}" placeholder="—" oninput="state.myCosts[${i}].total=this.value; save(); renderMyCosts();"></td>
-      <td><input type="number" value="${c.paid}" placeholder="—" oninput="state.myCosts[${i}].paid=this.value; save(); renderMyCosts();"></td>
-      <td>${remainingDisplay}</td>
+      <td><input type="number" value="${c.total}" placeholder="—" oninput="state.myCosts[${i}].total=this.value; save(); refreshMyCostRow(${i});"></td>
+      <td><input type="number" value="${c.paid}" placeholder="—" oninput="state.myCosts[${i}].paid=this.value; save(); refreshMyCostRow(${i});"></td>
+      <td id="myRem${i}">${remainingDisplay}</td>
       <td><input type="text" value="${escAttr(c.notes)}" title="${escAttr(c.notes)}" oninput="state.myCosts[${i}].notes=this.value; this.title=this.value; save()"></td>
       <td class="row-actions"><button onclick="removeMyCost(${i})" title="Remove">×</button></td>
     </tr>
   `;
-  }).join('');
+}
+
+function renderMyCosts(){
+  const body = document.getElementById('myBody');
+  body.innerHTML = state.myCosts.map((c, i) => myCostRowHtml(c, i)).join('');
+  updateMyCostsTotals();
+}
+
+// Called while typing in Total/Paid — updates just this row's Remaining cell and the totals bar,
+// without rebuilding the table (which was destroying the input and kicking focus to the next box).
+function refreshMyCostRow(i){
+  const c = state.myCosts[i];
+  const total = parseFloat(c.total)||0;
+  const paidAmt = parseFloat(c.paid)||0;
+  const remaining = total - paidAmt;
+  const cell = document.getElementById('myRem'+i);
+  if(cell) cell.innerHTML = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
+  updateMyCostsTotals();
+}
+
+function updateMyCostsTotals(){
   const byCurrency = {};
   state.myCosts.forEach(c => {
     const cur = c.currency || 'USD';
@@ -561,7 +623,7 @@ function renderMyCosts(){
     <div class="stat"><span class="label">Combined Paid (USD)</span><span class="value paid">$${pooled.paid.toFixed(2)}</span></div>
     <div class="stat"><span class="label">Combined Remaining (USD)</span><span class="value owed">$${pooled.remaining.toFixed(2)}</span></div>
     ${currencyStats}
-  ` || '';
+  `;
 }
 function addMyCost(){ state.myCosts.push({cat:"", details:"", currency:"USD", total:"", paid:"", notes:""}); save(); renderMyCosts(); }
 function removeMyCost(i){ state.myCosts.splice(i,1); save(); renderMyCosts(); }
