@@ -66,7 +66,8 @@
   .section-note{ color:var(--ink-soft); font-size:.85rem; margin-bottom:18px; }
 
   .table-scroll{ overflow-x:auto; margin-bottom:14px; }
-  table{ width:100%; min-width:900px; border-collapse:collapse; margin-bottom:0; font-size:.88rem; }
+  table{ width:100%; border-collapse:collapse; margin-bottom:0; font-size:.88rem; }
+  @media (min-width:641px){ table{ min-width:900px; } }
   th{
     text-align:left; font-family:'IBM Plex Sans'; font-weight:600; font-size:.72rem;
     text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);
@@ -178,12 +179,40 @@
     nav button{ padding:11px 10px; font-size:.8rem; text-align:center; }
     main{ padding:16px 12px; }
     .timetable-day{ grid-template-columns:1fr; }
-    table{ font-size:.8rem; }
-    th, td{ padding:6px 5px; }
     .guest-card-head{ flex-wrap:wrap; }
     .guest-card-head .guest-summary{ margin-left:0; }
     .totals-bar{ gap:14px; padding:12px 14px; }
     .stat .value{ font-size:1.05rem; }
+
+    /* --- Stacked cards instead of wide tables: no sideways scrolling --- */
+    .table-scroll{ overflow-x:visible; }
+    table, tbody, tr, td{ display:block; width:100%; }
+    thead{ display:none; }
+    tr{
+      border:1.5px solid var(--ink); border-radius:5px; background:#fff;
+      margin-bottom:14px; padding:10px 12px 12px;
+    }
+    td{
+      border-bottom:none; padding:7px 0;
+    }
+    td[data-label]::before{
+      content:attr(data-label);
+      display:block; font-size:.68rem; font-weight:600; text-transform:uppercase;
+      letter-spacing:.05em; color:var(--ink-soft); margin-bottom:3px;
+    }
+    td[data-label=""]::before{ content:none; }
+    tr:last-child td{ border-bottom:none; }
+    td[style*="width"]{ width:100% !important; text-align:left !important; }
+    .row-actions{ text-align:right; padding-top:2px; }
+    .row-actions button{
+      border:1px solid var(--line); border-radius:3px; font-size:.8rem; font-weight:600;
+      min-height:36px; padding:6px 14px;
+    }
+    .row-actions button::after{ content:" Remove"; }
+
+    /* Guest charge cards inside guest cards: lighter borders to avoid double-carding */
+    .charges-table tr{ border:1px solid var(--line); margin:10px; padding:8px 10px 10px; }
+    .charges-table td{ padding:6px 0; }
   }
 </style>
 </head>
@@ -411,32 +440,32 @@ function resRowHtml(r, i){
   const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
   return `
     <tr>
-      <td><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable();"></td>
-      <td><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
-      <td>
+      <td data-label="Item"><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable();"></td>
+      <td data-label="Date(s)"><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
+      <td data-label="Status">
         <select class="status-select ${r.status}" onchange="state.reservations[${i}].status=this.value; save(); renderReservations(); renderTimetable();">
           <option ${r.status==='Needed'?'selected':''}>Needed</option>
           <option ${r.status==='Booked'?'selected':''}>Booked</option>
           <option ${r.status==='Paid'?'selected':''}>Paid</option>
         </select>
       </td>
-      <td>
+      <td data-label="Day">
         <select onchange="state.reservations[${i}].linkedDay=this.value; save(); renderReservations(); renderTimetable();">
           <option value="" ${!r.linkedDay?'selected':''}>—</option>
           ${TIMETABLE.map(d=>`<option value="${d.idx}" ${r.linkedDay===d.idx?'selected':''}>Day ${d.idx} — ${escAttr(d.title)}</option>`).join('')}
         </select>
       </td>
-      <td>
+      <td data-label="Currency">
         <select onchange="state.reservations[${i}].currency=this.value; save(); renderReservations();">
           <option ${r.currency==='USD'?'selected':''}>USD</option>
           <option ${r.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
       </td>
-      <td><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); refreshResRow(${i});"></td>
-      <td><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); refreshResRow(${i});"></td>
-      <td id="resRem${i}">${remainingDisplay}</td>
-      <td><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
-      <td class="row-actions"><button onclick="removeRes(${i})" title="Remove">×</button></td>
+      <td data-label="Total"><input type="number" value="${r.total}" placeholder="—" oninput="state.reservations[${i}].total=this.value; save(); refreshResRow(${i});"></td>
+      <td data-label="Paid"><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); refreshResRow(${i});"></td>
+      <td data-label="Remaining" id="resRem${i}">${remainingDisplay}</td>
+      <td data-label="Notes"><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
+      <td class="row-actions" data-label=""><button onclick="removeRes(${i})" title="Remove">×</button></td>
     </tr>
   `;
 }
@@ -498,16 +527,16 @@ function guestCardHtml(g, gi){
   const currencies = [...new Set(g.charges.map(c=>c.currency))];
   const chargeRows = g.charges.map((c, ci) => `
       <tr>
-        <td><input type="text" value="${escAttr(c.label)}" title="${escAttr(c.label)}" placeholder="What is this charge for?" oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
-        <td style="width:80px">
+        <td data-label="Charge"><input type="text" value="${escAttr(c.label)}" title="${escAttr(c.label)}" placeholder="What is this charge for?" oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
+        <td data-label="Currency" style="width:80px">
           <select onchange="state.guests[${gi}].charges[${ci}].currency=this.value; save(); renderLedger();">
             <option ${c.currency==='USD'?'selected':''}>USD</option>
             <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
           </select>
         </td>
-        <td style="width:100px"><input type="number" value="${c.amount}" oninput="state.guests[${gi}].charges[${ci}].amount=this.value; save(); refreshGuestRow(${gi});"></td>
-        <td style="width:70px; text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="state.guests[${gi}].charges[${ci}].paid=this.checked; save(); refreshGuestRow(${gi});" style="width:17px;height:17px;"></td>
-        <td class="row-actions" style="width:30px"><button onclick="removeCharge(${gi},${ci})" title="Remove charge">×</button></td>
+        <td data-label="Amount" style="width:100px"><input type="number" value="${c.amount}" oninput="state.guests[${gi}].charges[${ci}].amount=this.value; save(); refreshGuestRow(${gi});"></td>
+        <td data-label="Paid?" style="width:70px; text-align:center"><input type="checkbox" ${c.paid?'checked':''} onchange="state.guests[${gi}].charges[${ci}].paid=this.checked; save(); refreshGuestRow(${gi});" style="width:17px;height:17px;"></td>
+        <td class="row-actions" data-label="" style="width:30px"><button onclick="removeCharge(${gi},${ci})" title="Remove charge">×</button></td>
       </tr>
     `).join('');
   const owedByCurrency = currencies.map(cur=>{
@@ -589,19 +618,19 @@ function myCostRowHtml(c, i){
   const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
   return `
     <tr>
-      <td><input type="text" value="${escAttr(c.cat)}" oninput="state.myCosts[${i}].cat=this.value; save()"></td>
-      <td><input type="text" value="${escAttr(c.details)}" title="${escAttr(c.details)}" oninput="state.myCosts[${i}].details=this.value; this.title=this.value; save()"></td>
-      <td>
+      <td data-label="Category"><input type="text" value="${escAttr(c.cat)}" oninput="state.myCosts[${i}].cat=this.value; save()"></td>
+      <td data-label="Details"><input type="text" value="${escAttr(c.details)}" title="${escAttr(c.details)}" oninput="state.myCosts[${i}].details=this.value; this.title=this.value; save()"></td>
+      <td data-label="Currency">
         <select onchange="state.myCosts[${i}].currency=this.value; save(); renderMyCosts();">
           <option ${c.currency==='USD'?'selected':''}>USD</option>
           <option ${c.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
       </td>
-      <td><input type="number" value="${c.total}" placeholder="—" oninput="state.myCosts[${i}].total=this.value; save(); refreshMyCostRow(${i});"></td>
-      <td><input type="number" value="${c.paid}" placeholder="—" oninput="state.myCosts[${i}].paid=this.value; save(); refreshMyCostRow(${i});"></td>
-      <td id="myRem${i}">${remainingDisplay}</td>
-      <td><input type="text" value="${escAttr(c.notes)}" title="${escAttr(c.notes)}" oninput="state.myCosts[${i}].notes=this.value; this.title=this.value; save()"></td>
-      <td class="row-actions"><button onclick="removeMyCost(${i})" title="Remove">×</button></td>
+      <td data-label="Total"><input type="number" value="${c.total}" placeholder="—" oninput="state.myCosts[${i}].total=this.value; save(); refreshMyCostRow(${i});"></td>
+      <td data-label="Paid"><input type="number" value="${c.paid}" placeholder="—" oninput="state.myCosts[${i}].paid=this.value; save(); refreshMyCostRow(${i});"></td>
+      <td data-label="Remaining" id="myRem${i}">${remainingDisplay}</td>
+      <td data-label="Notes"><input type="text" value="${escAttr(c.notes)}" title="${escAttr(c.notes)}" oninput="state.myCosts[${i}].notes=this.value; this.title=this.value; save()"></td>
+      <td class="row-actions" data-label=""><button onclick="removeMyCost(${i})" title="Remove">×</button></td>
     </tr>
   `;
 }
