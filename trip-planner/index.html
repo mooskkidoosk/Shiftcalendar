@@ -167,6 +167,44 @@
   }
   .add-charge:hover{ text-decoration:underline; }
 
+  /* Push-to-ledger modal */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(36,31,26,.4); z-index:200;
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  .modal-card{
+    background:var(--paper); border:1.5px solid var(--ink); border-radius:6px;
+    max-width:420px; width:100%; max-height:82vh; overflow-y:auto; padding:20px 22px;
+  }
+  .modal-card h3{ font-family:'Petrona',serif; margin:0 0 4px; font-size:1.05rem; }
+  .push-res-name{ font-size:.85rem; color:var(--ink-soft); margin:0 0 14px; font-style:italic; }
+  .push-amount-row{ margin-bottom:14px; }
+  .push-amount-row label{ display:block; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:4px; }
+  .push-amount-row input{ width:130px; margin-right:10px; }
+  .push-guest-list{
+    border:1px solid var(--line); border-radius:4px; background:#fff;
+    max-height:230px; overflow-y:auto; margin-bottom:10px;
+  }
+  .push-guest-row{
+    display:flex; align-items:center; gap:9px; padding:7px 11px;
+    border-bottom:1px solid var(--line); font-size:.87rem; cursor:pointer;
+  }
+  .push-guest-row:last-child{ border-bottom:none; }
+  .push-guest-row input{ width:16px; height:16px; }
+  .push-hint{ font-size:.75rem; color:var(--ink-soft); margin:0 0 14px; }
+  .push-actions{ display:flex; justify-content:flex-end; gap:10px; }
+  .push-confirm{
+    background:var(--accent); color:var(--paper); border:1.5px solid var(--accent);
+    border-radius:4px; padding:8px 16px; font-weight:600; font-size:.85rem; cursor:pointer;
+  }
+  .push-ledger-btn{
+    border:1px solid var(--line); border-radius:3px; background:#fff;
+    font-size:.7rem; font-weight:600; padding:4px 7px; cursor:pointer; margin-right:5px;
+    white-space:nowrap;
+  }
+  .push-ledger-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .linked-charge td:first-child input{ background:transparent; border-color:transparent; font-style:italic; }
+
   @media (max-width:640px){
     body{ padding-bottom:calc(60px + env(safe-area-inset-bottom)); }
     header{
@@ -208,7 +246,8 @@
       border:1px solid var(--line); border-radius:3px; font-size:.8rem; font-weight:600;
       min-height:36px; padding:6px 14px;
     }
-    .row-actions button::after{ content:" Remove"; }
+    .row-actions button:not(.push-ledger-btn)::after{ content:" Remove"; }
+    .push-ledger-btn{ font-size:.8rem; min-height:36px; padding:6px 12px; }
 
     /* Guest charge cards inside guest cards: lighter borders to avoid double-carding */
     .charges-table tr{ border:1px solid var(--line); margin:10px; padding:8px 10px 10px; }
@@ -282,6 +321,10 @@
 
 </main>
 
+<div class="modal-overlay" id="pushModal" style="display:none" onclick="if(event.target===this) closePushModal()">
+  <div class="modal-card" id="pushModalBody"></div>
+</div>
+
 <div class="save-indicator" id="saveIndicator">Saved</div>
 
 <script>
@@ -350,6 +393,8 @@ const DEFAULT_MYCOSTS = [
 // ---------- State ----------
 let state = load();
 
+function newId(){ return 'r' + Math.random().toString(36).slice(2,10); }
+
 function load(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -357,17 +402,22 @@ function load(){
       const parsed = JSON.parse(raw);
       if(!parsed.exchangeRate) parsed.exchangeRate = 18.5;
       if(!parsed.dayNotes) parsed.dayNotes = {};
-      parsed.reservations.forEach(r => { if(r.linkedDay === undefined) r.linkedDay = ""; });
+      parsed.reservations.forEach(r => {
+        if(r.linkedDay === undefined) r.linkedDay = "";
+        if(!r.id) r.id = newId();
+      });
       return parsed;
     }
   }catch(e){}
-  return {
+  const fresh = {
     reservations: JSON.parse(JSON.stringify(DEFAULT_RESERVATIONS)),
     guests: JSON.parse(JSON.stringify(DEFAULT_GUESTS)),
     myCosts: JSON.parse(JSON.stringify(DEFAULT_MYCOSTS)),
     exchangeRate: 18.5, // ZAR per 1 USD — approximate, edit to the current rate
     dayNotes: {}, // keyed by day idx ("01".."14") — free-text notes per day
   };
+  fresh.reservations.forEach(r => { r.id = newId(); });
+  return fresh;
 }
 
 function save(){
@@ -420,7 +470,7 @@ function renderTimetable(){
 }
 
 function addLinkedReservation(dayIdx, dayDate){
-  state.reservations.push({item:"", date:dayDate, status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:dayIdx});
+  state.reservations.push({id:newId(), item:"", date:dayDate, status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:dayIdx});
   save();
   renderReservations();
   renderTimetable();
@@ -433,6 +483,22 @@ function addLinkedReservation(dayIdx, dayDate){
 }
 
 // ---------- Reservations ----------
+// Chronological sort: linked day wins; otherwise parse the free-text date ("Sep 5", "Sept 13–16" → first date).
+// Both map onto the same scale (Day 01 = Sep 3), so linked and unlinked rows interleave correctly.
+const MONTH_NUM = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function resSortKey(r){
+  if(r.linkedDay) return parseInt(r.linkedDay, 10);
+  const m = (r.date||'').toLowerCase().match(/([a-z]{3,9})\.?\s*(\d{1,2})/);
+  if(m){
+    const mon = MONTH_NUM[m[1].slice(0,3)];
+    if(mon) return (mon*31 + parseInt(m[2],10)) - (9*31 + 3) + 1; // Sep 3 → 1, matching Day 01
+  }
+  return 999; // undated rows sink to the bottom
+}
+function sortReservations(){
+  state.reservations.sort((a,b)=>resSortKey(a)-resSortKey(b));
+}
+
 function resRowHtml(r, i){
   const total = parseFloat(r.total)||0;
   const paidAmt = parseFloat(r.paid)||0;
@@ -440,8 +506,8 @@ function resRowHtml(r, i){
   const remainingDisplay = total ? `<span style="font-family:'IBM Plex Mono'; font-weight:600; color:${remaining>0?'var(--owed)':'var(--paid)'}">${remaining.toFixed(2)}</span>` : `<span style="color:var(--ink-faint)">—</span>`;
   return `
     <tr>
-      <td data-label="Item"><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable();"></td>
-      <td data-label="Date(s)"><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()"></td>
+      <td data-label="Item"><input type="text" value="${escAttr(r.item)}" title="${escAttr(r.item)}" oninput="state.reservations[${i}].item=this.value; this.title=this.value; save(); renderTimetable(); syncResCharges(${i});"></td>
+      <td data-label="Date(s)"><input type="text" value="${escAttr(r.date)}" oninput="state.reservations[${i}].date=this.value; save()" onchange="renderReservations()"></td>
       <td data-label="Status">
         <select class="status-select ${r.status}" onchange="state.reservations[${i}].status=this.value; save(); renderReservations(); renderTimetable();">
           <option ${r.status==='Needed'?'selected':''}>Needed</option>
@@ -456,7 +522,7 @@ function resRowHtml(r, i){
         </select>
       </td>
       <td data-label="Currency">
-        <select onchange="state.reservations[${i}].currency=this.value; save(); renderReservations();">
+        <select onchange="state.reservations[${i}].currency=this.value; save(); syncResCharges(${i}); renderReservations();">
           <option ${r.currency==='USD'?'selected':''}>USD</option>
           <option ${r.currency==='ZAR'?'selected':''}>ZAR</option>
         </select>
@@ -465,12 +531,16 @@ function resRowHtml(r, i){
       <td data-label="Paid"><input type="number" value="${r.paid}" placeholder="—" oninput="state.reservations[${i}].paid=this.value; save(); refreshResRow(${i});"></td>
       <td data-label="Remaining" id="resRem${i}">${remainingDisplay}</td>
       <td data-label="Notes"><input type="text" value="${escAttr(r.notes)}" title="${escAttr(r.notes)}" oninput="state.reservations[${i}].notes=this.value; this.title=this.value; save()"></td>
-      <td class="row-actions" data-label=""><button onclick="removeRes(${i})" title="Remove">×</button></td>
+      <td class="row-actions" data-label="">
+        <button class="push-ledger-btn" onclick="openPushModal(${i})" title="Push this charge to the Guest Ledger">→ Ledger</button>
+        <button onclick="removeRes(${i})" title="Remove">×</button>
+      </td>
     </tr>
   `;
 }
 
 function renderReservations(){
+  sortReservations();
   const body = document.getElementById('resBody');
   body.innerHTML = state.reservations.map((r, i) => resRowHtml(r, i)).join('');
   updateResTotals();
@@ -517,8 +587,98 @@ function updateResTotals(){
     ${currencyStats}
   `;
 }
-function addRes(){ state.reservations.push({item:"", date:"", status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:""}); save(); renderReservations(); renderTimetable(); }
-function removeRes(i){ state.reservations.splice(i,1); save(); renderReservations(); renderTimetable(); }
+function addRes(){ state.reservations.push({id:newId(), item:"", date:"", status:"Needed", currency:"USD", total:"", paid:"", notes:"", linkedDay:""}); save(); renderReservations(); renderTimetable(); }
+
+function removeRes(i){
+  const r = state.reservations[i];
+  const linkedCount = r.id ? state.guests.reduce((n,g)=>n+g.charges.filter(c=>c.resId===r.id).length, 0) : 0;
+  const msg = linkedCount
+    ? `Remove "${r.item||'this reservation'}"? Its ${linkedCount} linked guest-ledger charge${linkedCount>1?'s':''} will be removed too.`
+    : `Remove "${r.item||'this reservation'}"?`;
+  if(!confirm(msg)) return;
+  if(r.id) state.guests.forEach(g => { g.charges = g.charges.filter(c=>c.resId!==r.id); });
+  state.reservations.splice(i,1);
+  save(); renderReservations(); renderTimetable(); renderLedger();
+}
+
+// ---------- Push a reservation to the Guest Ledger ----------
+// Charges created this way carry the reservation's id (resId). Pushing again UPDATES those
+// charges instead of adding new ones — so re-pushing never creates duplicates.
+function syncResCharges(i){
+  const r = state.reservations[i];
+  if(!r || !r.id) return;
+  let touched = false;
+  state.guests.forEach(g => g.charges.forEach(c => {
+    if(c.resId === r.id){
+      c.label = r.item || '(untitled)';
+      c.currency = r.currency;
+      touched = true;
+    }
+  }));
+  if(touched){ save(); renderLedger(); }
+}
+
+function openPushModal(i){
+  const r = state.reservations[i];
+  if(!r.id){ r.id = newId(); save(); }
+  const existingAmounts = [];
+  const checkedSet = new Set();
+  state.guests.forEach((g, gi) => {
+    const c = g.charges.find(c=>c.resId===r.id);
+    if(c){ checkedSet.add(gi); existingAmounts.push(c.amount); }
+  });
+  const firstPush = checkedSet.size === 0;
+  const prefill = existingAmounts.length ? existingAmounts[0] : '';
+  const guestBoxes = state.guests.map((g, gi) => `
+    <label class="push-guest-row">
+      <input type="checkbox" id="gpick${gi}" ${firstPush || checkedSet.has(gi) ? 'checked' : ''}>
+      <span>${escAttr(g.name)||'(unnamed)'}</span>
+    </label>
+  `).join('');
+  document.getElementById('pushModalBody').innerHTML = `
+    <h3>Push to Guest Ledger</h3>
+    <p class="push-res-name">${escAttr(r.item)||'(untitled reservation)'}</p>
+    <div class="push-amount-row">
+      <label>Amount per person (${r.currency})</label>
+      <input type="number" id="pushAmount" value="${prefill}" placeholder="0.00">
+      ${parseFloat(r.total) ? `<button class="mini-link-btn" onclick="splitTotalEvenly(${i})">Split total (${r.total} ${r.currency}) across checked</button>` : ''}
+    </div>
+    <div class="push-guest-list">${guestBoxes}</div>
+    <p class="push-hint">${firstPush ? 'This adds one charge per checked person.' : 'Already pushed — this updates the existing charges (no duplicates). Unchecking someone removes their charge.'}</p>
+    <div class="push-actions">
+      <button class="mini-link-btn" onclick="closePushModal()">Cancel</button>
+      <button class="push-confirm" onclick="applyPush(${i})">${firstPush ? 'Add charges' : 'Update charges'}</button>
+    </div>
+  `;
+  document.getElementById('pushModal').style.display = 'flex';
+}
+function closePushModal(){ document.getElementById('pushModal').style.display = 'none'; }
+function splitTotalEvenly(i){
+  const r = state.reservations[i];
+  const n = state.guests.filter((g,gi)=>document.getElementById('gpick'+gi).checked).length;
+  if(n) document.getElementById('pushAmount').value = ((parseFloat(r.total)||0)/n).toFixed(2);
+}
+function applyPush(i){
+  const r = state.reservations[i];
+  const amount = parseFloat(document.getElementById('pushAmount').value);
+  if(!(amount > 0)){ alert('Enter an amount per person first.'); return; }
+  state.guests.forEach((g, gi) => {
+    const checked = document.getElementById('gpick'+gi).checked;
+    const idx = g.charges.findIndex(c=>c.resId===r.id);
+    if(checked){
+      if(idx >= 0){
+        g.charges[idx].label = r.item || '(untitled)';
+        g.charges[idx].currency = r.currency;
+        g.charges[idx].amount = amount;           // paid checkmark is kept as-is
+      }else{
+        g.charges.push({resId:r.id, label:r.item||'(untitled)', currency:r.currency, amount, paid:false});
+      }
+    }else if(idx >= 0){
+      g.charges.splice(idx,1);                     // unchecked → charge comes off their card
+    }
+  });
+  save(); renderLedger(); closePushModal(); switchTab('ledger');
+}
 
 // ---------- Guest ledger — itemized cards ----------
 function guestCardHtml(g, gi){
@@ -526,8 +686,8 @@ function guestCardHtml(g, gi){
   const totalPaid = g.charges.filter(c=>c.paid).reduce((s,c)=>s+(parseFloat(c.amount)||0),0);
   const currencies = [...new Set(g.charges.map(c=>c.currency))];
   const chargeRows = g.charges.map((c, ci) => `
-      <tr>
-        <td data-label="Charge"><input type="text" value="${escAttr(c.label)}" title="${escAttr(c.label)}" placeholder="What is this charge for?" oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
+      <tr${c.resId ? ' class="linked-charge"' : ''}>
+        <td data-label="Charge"><input type="text" value="${escAttr(c.label)}" title="${c.resId ? 'Linked to a reservation — name, currency & amount sync from the Reservations tab' : escAttr(c.label)}" placeholder="What is this charge for?" ${c.resId ? 'readonly' : ''} oninput="state.guests[${gi}].charges[${ci}].label=this.value; this.title=this.value; save()"></td>
         <td data-label="Currency" style="width:80px">
           <select onchange="state.guests[${gi}].charges[${ci}].currency=this.value; save(); renderLedger();">
             <option ${c.currency==='USD'?'selected':''}>USD</option>
