@@ -484,6 +484,7 @@ async function pushToCloud(){
     });
     const j = await res.json();
     if(j && j.ok){
+      if(!state.cloudSeeded){ state.cloudSeeded = true; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
       const t = new Date();
       updateSyncBadge('on', '☁ Synced ' + t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0'));
     }else{
@@ -497,14 +498,29 @@ async function pullFromCloud(){
   try{
     const res = await fetch(syncUrl);
     const j = await res.json();
-    if(j && j.state && j.savedAt && j.savedAt > (state.lastModified||0)){
-      if(confirm('Newer entries found in your Google Sheet (saved from another device). Load them here?\n\nOK = use the Sheet version · Cancel = keep what\'s on this device')){
-        state = j.state;
-        state.lastModified = j.savedAt;
+    // Accept both formats: {savedAt, state} (this planner) and bare state {reservations,...} (pre-existing sheet)
+    let remoteState = null, remoteSavedAt = 0;
+    if(j && j.state && j.state.reservations){ remoteState = j.state; remoteSavedAt = j.savedAt || 0; }
+    else if(j && j.reservations){ remoteState = j; remoteSavedAt = j.lastModified || 0; }
+    if(!remoteState) return;
+    const newerRemote = remoteSavedAt > (state.lastModified||0);
+    const neverCloudLoaded = !state.cloudSeeded;
+    if(newerRemote || neverCloudLoaded){
+      if(confirm('Found entries in your Google Sheet' + (newerRemote ? ' (newer than this device)' : '') + '. Load them here?\n\nOK = use the Sheet version · Cancel = keep what\'s on this device')){
+        remoteState.cloudSeeded = true;
+        remoteState.lastModified = remoteSavedAt || Date.now();
+        (remoteState.reservations||[]).forEach(r => { if(!r.id) r.id = newId(); if(r.linkedDay===undefined) r.linkedDay=""; });
+        if(!remoteState.exchangeRate) remoteState.exchangeRate = 18.5;
+        if(!remoteState.dayNotes) remoteState.dayNotes = {};
+        if(!remoteState.myCosts) remoteState.myCosts = state.myCosts || [];
+        state = remoteState;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         renderTimetable(); renderReservations(); renderLedger(); renderMyCosts();
         const ri = document.getElementById('rateInput');
-        if(ri) ri.value = state.exchangeRate;
+        if(ri) ri.value = state.exchangeRate || 18.5;
+      }else{
+        state.cloudSeeded = true; // don't re-ask on every load
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
     }
   }catch(e){ /* offline or URL issue — local data still works */ }
