@@ -58,6 +58,12 @@
     font-size:.78rem; color:var(--ink-soft); display:flex; align-items:center; gap:8px; flex-wrap:wrap;
   }
   .rate-row input{ width:85px; display:inline-block; font-family:'IBM Plex Mono'; font-weight:600; }
+  .sync-btn{
+    border:1px solid var(--line); border-radius:3px; background:#fff; cursor:pointer;
+    font-size:.72rem; font-weight:600; padding:4px 9px; margin-left:10px; white-space:nowrap;
+  }
+  .sync-btn.on{ border-color:var(--accent); color:var(--accent); }
+  .sync-btn.err{ border-color:var(--owed); color:var(--owed); }
   main{ max-width:1040px; margin:0 auto; padding:24px 20px; }
   section{ display:none; }
   section.active{ display:block; }
@@ -270,6 +276,7 @@
     <span>Exchange rate — 1 USD =</span>
     <input type="number" step="0.01" id="rateInput" value="18.5">
     <span>ZAR (approximate — edit to the current rate; used to combine totals into one pool)</span>
+    <button class="sync-btn" id="syncBtn" onclick="setSyncUrl()" title="Sync your entries to a Google Sheet">☁ Sheet sync: off</button>
   </div>
 </header>
 
@@ -422,12 +429,85 @@ function load(){
 
 function save(){
   try{
+    state.lastModified = Date.now();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     const ind = document.getElementById('saveIndicator');
     ind.classList.add('show');
     clearTimeout(window._saveTimeout);
     window._saveTimeout = setTimeout(()=>ind.classList.remove('show'), 1200);
+    queueSync();
   }catch(e){ console.error('Save failed', e); }
+}
+
+// ---------- Google Sheet sync ----------
+// Every change is pushed (debounced) to an Apps Script web app that writes the data
+// into readable tabs in your Google Sheet, plus a _state tab used to restore across devices.
+const SYNC_URL_KEY = "saLesothoPlannerSyncUrl";
+let syncUrl = localStorage.getItem(SYNC_URL_KEY) || "";
+let _syncTimer = null;
+
+function setSyncUrl(){
+  const entered = prompt(
+    "Paste your Apps Script Web App URL (ends in /exec).\nLeave empty and press OK to turn sync off.",
+    syncUrl
+  );
+  if(entered === null) return; // cancelled
+  syncUrl = entered.trim();
+  localStorage.setItem(SYNC_URL_KEY, syncUrl);
+  updateSyncBadge(syncUrl ? 'on' : 'off');
+  if(syncUrl){ pullFromCloud().then(()=>pushToCloud()); }
+}
+
+function updateSyncBadge(mode, text){
+  const b = document.getElementById('syncBtn');
+  if(!b) return;
+  b.classList.remove('on','err');
+  if(mode==='on') b.classList.add('on');
+  if(mode==='err') b.classList.add('err');
+  b.textContent = text || (mode==='on' ? '☁ Sheet sync: on' : mode==='err' ? '☁ Sync failed — tap to check URL' : '☁ Sheet sync: off');
+}
+
+function queueSync(){
+  if(!syncUrl) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(pushToCloud, 2500); // waits for a pause in typing, then one push
+}
+
+async function pushToCloud(){
+  if(!syncUrl) return;
+  try{
+    updateSyncBadge('on', '☁ Syncing…');
+    const res = await fetch(syncUrl, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // simple content type — avoids CORS preflight
+      body: JSON.stringify({state})
+    });
+    const j = await res.json();
+    if(j && j.ok){
+      const t = new Date();
+      updateSyncBadge('on', '☁ Synced ' + t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0'));
+    }else{
+      updateSyncBadge('err');
+    }
+  }catch(e){ updateSyncBadge('err'); }
+}
+
+async function pullFromCloud(){
+  if(!syncUrl) return;
+  try{
+    const res = await fetch(syncUrl);
+    const j = await res.json();
+    if(j && j.state && j.savedAt && j.savedAt > (state.lastModified||0)){
+      if(confirm('Newer entries found in your Google Sheet (saved from another device). Load them here?\n\nOK = use the Sheet version · Cancel = keep what\'s on this device')){
+        state = j.state;
+        state.lastModified = j.savedAt;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderTimetable(); renderReservations(); renderLedger(); renderMyCosts();
+        const ri = document.getElementById('rateInput');
+        if(ri) ri.value = state.exchangeRate;
+      }
+    }
+  }catch(e){ /* offline or URL issue — local data still works */ }
 }
 
 // ---------- Tabs ----------
@@ -861,6 +941,8 @@ renderTimetable();
 renderReservations();
 renderLedger();
 renderMyCosts();
+updateSyncBadge(syncUrl ? 'on' : 'off');
+if(syncUrl) pullFromCloud();
 
 const rateInput = document.getElementById('rateInput');
 rateInput.value = state.exchangeRate;
